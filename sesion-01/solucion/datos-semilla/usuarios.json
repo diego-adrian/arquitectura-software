@@ -1,7 +1,0 @@
-[
-  { "id": "E-1001", "codigo": "2023-1001", "nombre": "Ana Quispe", "correo": "ana.quispe@estudiantes.cupo.test", "rol": "estudiante", "tipo": "regular", "password": "demo1234" },
-  { "id": "E-1002", "codigo": "2024-1002", "nombre": "Luis Mamani", "correo": "luis.mamani@estudiantes.cupo.test", "rol": "estudiante", "tipo": "becado", "password": "demo1234" },
-  { "id": "E-1003", "codigo": "2022-1003", "nombre": "Carla Rojas", "correo": "carla.rojas@estudiantes.cupo.test", "rol": "estudiante", "tipo": "convenio", "password": "demo1234" },
-  { "id": "E-1004", "codigo": "2025-1004", "nombre": "Diego Flores", "correo": "diego.flores@estudiantes.cupo.test", "rol": "estudiante", "tipo": "traspaso", "password": "demo1234" },
-  { "id": "D-0001", "codigo": "DIR-SIS", "nombre": "Dirección de Carrera de Sistemas", "correo": "direccion.sistemas@cupo.test", "rol": "director", "tipo": null, "password": "demo1234" }
-]
