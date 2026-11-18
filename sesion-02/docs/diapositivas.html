@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sesión 2 · Estilos y patrones arquitectónicos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Diapositivas de la sesión. Lienzo fijo de 1600×900 que se escala a la ventana; mismos tokens que guias/assets/guia.css. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --sunk:#E8ECF0; --ink:#14202B; --muted:#56636F; --line:#D5DCE3;
+  --a:#0E6A86; --a-soft:#DCEEF4; --b:#A84D1A; --b-soft:#F6E7DD;
+  --ok:#2A7A4B; --ok-soft:#DFF1E6; --warn:#9A6A12; --warn-soft:#F7EDD6; --bad:#BC322B; --bad-soft:#F8E0DE;
+  --stage:#DDE3E9;
+  --f-body:sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--f-body);font-weight:300;overflow:hidden}
+b,strong{font-weight:500}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--sunk);padding:.08em .32em;border-radius:4px}
+.mono{font-family:var(--f-mono)}
+
+.deck{position:fixed;inset:0}
+.slide{position:absolute;left:50%;top:50%;width:1600px;height:900px;margin:-450px 0 0 -800px;
+  transform:scale(var(--s,1));background:var(--bg);display:none;flex-direction:column;
+  padding:44px 72px 34px;gap:22px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.18)}
+.slide.activa{display:flex}
+
+/* barra superior y pie */
+.barra{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:15px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.barra .marca{display:flex;gap:14px;align-items:center}
+.barra .punto{width:10px;height:10px;border-radius:50%;background:var(--a)}
+.pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:30px;
+  border-top:1px solid var(--line);padding-top:16px;font-size:20px;color:var(--muted)}
+.pie .idea{color:var(--ink);font-weight:400}
+.pie .idea::before{content:"→ ";color:var(--a);font-family:var(--f-mono)}
+.pie .num{font-family:var(--f-mono);font-size:15px;white-space:nowrap}
+.pie .sello{color:var(--a);letter-spacing:.08em;margin-right:18px;padding-right:18px;border-right:1px solid var(--line)}
+
+/* portada */
+.portada{justify-content:flex-start}
+.portada .cuerpo{flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:64px;align-items:center}
+.portada h1{font-size:88px;line-height:1.02;font-weight:700;margin:14px 0 26px;letter-spacing:-.015em;text-wrap:balance}
+.portada .lede{font-size:28px;line-height:1.45;color:var(--muted);max-width:30ch}
+.portada .ses{font-family:var(--f-mono);font-size:20px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.agenda{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 34px;display:flex;flex-direction:column;gap:6px}
+.agenda h2{font-family:var(--f-mono);font-size:15px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.agenda .item{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.agenda .item:first-of-type{border-top:0}
+.agenda .n{font-family:var(--f-mono);font-size:22px;color:var(--a)}
+.agenda .t{font-size:27px;font-weight:600;line-height:1.2}
+.agenda .s{display:block;font-size:18px;font-weight:300;color:var(--muted);margin-top:2px}
+.ficha{display:flex;gap:0;margin-top:34px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;max-width:820px}
+.ficha div{flex:1;padding:14px 18px;border-left:1px solid var(--line)}
+.ficha div:first-child{border-left:0}
+.ficha dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ficha dd{margin:4px 0 0;font-size:20px;font-weight:400}
+
+/* concepto: los tamaños de texto se multiplican por --k, que el script baja si el contenido no cabe */
+.slide{--k:1}
+.titular{display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.titular h1{font-size:calc(68px*var(--k));font-weight:700;line-height:1;margin:0;letter-spacing:-.015em}
+.titular .exp{font-size:calc(26px*var(--k));color:var(--muted);margin-top:10px}
+.titular .exp b{color:var(--ink)}
+.chips{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+.chip{font-family:var(--f-mono);font-size:15px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.chip.tipo{background:var(--a-soft);color:var(--a);border-color:transparent;text-transform:uppercase;letter-spacing:.08em}
+.chip.origen{font-size:17px}
+
+.cuerpo{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:start}
+.cuerpo.solo{grid-template-columns:1fr}
+.col{display:flex;flex-direction:column;gap:16px}
+.defin{margin:0;font-size:calc(28px*var(--k));line-height:1.4;font-weight:300}
+.defin b{font-weight:500}
+.cita{margin:0;border-left:4px solid var(--a);padding:2px 0 2px 22px;font-size:calc(21px*var(--k));line-height:1.45;font-style:italic}
+.cita footer{font-style:normal;font-family:var(--f-mono);font-size:calc(14px*var(--k));color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+.piezas{display:grid;gap:8px}
+.pieza{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:calc(18.5px*var(--k));line-height:1.32}
+.pieza .k{font-family:var(--f-mono);font-size:1.25em;font-weight:500;color:var(--a);margin-right:8px}
+.pieza .h{font-weight:500}
+.pieza .x{display:block;color:var(--muted);margin-top:2px}
+
+.datos{display:grid;gap:12px;margin:0}
+.dato{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 16px;font-size:calc(18.5px*var(--k));line-height:1.42}
+.dato dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:6px}
+.dato dd{margin:0}
+.dato.no{border-top-color:var(--b)}
+.dato.no dt{color:var(--b)}
+
+.cupo{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;background:var(--a-soft);border-radius:12px;padding:14px 22px;font-size:calc(19.5px*var(--k));line-height:1.45}
+.cupo .et{font-family:var(--f-mono);font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--a);padding-top:5px;white-space:nowrap}
+
+/* diapositivas libres (diapositivas-cupo.html): diagramas SVG que heredan los tokens, paneles, tablas y código */
+.lienzo{flex:1;min-height:0;display:grid;gap:28px}
+.lienzo svg{width:100%;height:100%;display:block;overflow:visible}
+.dg text{font-family:var(--f-body);fill:var(--ink);font-size:19px;font-weight:400}
+.dg .tt{font-size:22px;font-weight:600}
+.dg .tg{font-size:30px;font-weight:700}
+.dg .tm{fill:var(--muted);font-size:15.5px;font-weight:300}
+.dg .tc{font-family:var(--f-mono);font-size:14px;fill:var(--muted)}
+.dg .tc.a{fill:var(--a)}
+.dg .tc.b{fill:var(--b)}
+.dg .caja{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.dg .acento{fill:var(--a-soft);stroke:var(--a);stroke-width:2}
+.dg .ext{fill:var(--sunk);stroke:var(--muted);stroke-width:1.3;stroke-dasharray:6 5}
+.dg .naranja{fill:var(--b-soft);stroke:var(--b);stroke-width:1.5}
+.dg .ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}
+.dg .linea{stroke:var(--muted);stroke-width:1.6;fill:none}
+.dg .flecha{stroke:var(--muted);stroke-width:1.8;fill:none}
+.dg .flecha.a{stroke:var(--a)}
+.dg .flecha.b{stroke:var(--b)}
+.dg .punta{fill:var(--muted)} .dg .punta.a{fill:var(--a)} .dg .punta.b{fill:var(--b)}
+.dg .barra-dato{fill:var(--a)}
+.dg .barra-dato:hover{opacity:.8}
+.dg .eje{stroke:var(--line);stroke-width:1.5}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:10px;font-size:calc(17px*var(--k));line-height:1.42}
+.panel h3,.lienzo h3{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--a);margin:0}
+.panel p{margin:0}
+.filas{display:flex;flex-direction:column}
+.fila{display:grid;grid-template-columns:var(--cols,1fr 2fr);gap:14px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.fila:first-child{border-top:0}
+.fila .m{color:var(--muted)}
+.fila>code{justify-self:start}
+.pasos{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.paso{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:calc(15px*var(--k));line-height:1.38}
+.paso .n{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.paso .h{font-size:calc(19px*var(--k));font-weight:600}
+.paso code{font-size:.78em}
+.reglas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.regla{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:calc(16.5px*var(--k));line-height:1.38;display:flex;flex-direction:column;gap:4px}
+.regla .h{font-weight:600;font-size:calc(19px*var(--k))}
+.regla .c{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.cod{background:#14202B;color:#E4EBF1;border-radius:12px;padding:18px 22px;font-family:var(--f-mono);font-size:calc(15px*var(--k));line-height:1.6;margin:0;white-space:pre}
+.cod .c{color:#7F8E9B}
+.cod .k{color:#7CC4DD}
+.metodo{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:6px;background:var(--a-soft);color:var(--a)}
+.metodo.post{background:var(--b-soft);color:var(--b)}
+.metodo.del{background:var(--bad-soft);color:var(--bad)}
+
+/* presentaciones de clase (claseNN.py): separadores de parte, tablas, listas y tarjetas */
+.separador .cuerpo-sep{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:1240px}
+.separador .parte{font-family:var(--f-mono);font-size:22px;color:var(--a);letter-spacing:.1em;text-transform:uppercase}
+.separador h1{font-size:104px;line-height:1;font-weight:700;margin:0;letter-spacing:-.02em}
+.separador .lede{font-size:30px;line-height:1.45;color:var(--muted);margin:0;max-width:44ch}
+.separador .temas{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.separador .chip{font-size:17px;padding:8px 16px}
+.tabla{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;font-size:calc(17px*var(--k));line-height:1.4}
+.tabla th{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:11px 16px;background:var(--sunk)}
+.tabla td{padding:calc(10px*var(--k)) 16px;border-top:1px solid var(--line);vertical-align:top}
+.tabla td:first-child{font-weight:500}
+.tabla .k{font-family:var(--f-mono);font-size:1.2em;color:var(--a)}
+.tabla .m{color:var(--muted)}
+.estado{font-family:var(--f-mono);font-size:calc(14px*var(--k));padding:3px 10px;border-radius:999px;white-space:nowrap;display:inline-block}
+.estado.si{background:var(--ok-soft);color:var(--ok)}
+.estado.no{background:var(--bad-soft);color:var(--bad)}
+.estado.pend{background:var(--warn-soft);color:var(--warn)}
+.lista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:calc(10px*var(--k))}
+.lista li{padding-left:30px;position:relative}
+.lista li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-family:var(--f-mono);font-weight:500}
+.lista.no li::before{content:"✕";color:var(--bad)}
+.lista.num{counter-reset:n}
+.lista.num li{padding-left:40px}
+.lista.num li::before{counter-increment:n;content:counter(n,decimal-leading-zero);color:var(--a)}
+.panel.suave{background:var(--a-soft);border-color:transparent}
+.panel.alerta{background:var(--b-soft);border-color:transparent}
+.panel.alerta h3{color:var(--b)}
+.panel .ticket{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.06em}
+.panel .cita{font-size:calc(19px*var(--k))}
+.panel .grande{font-size:calc(22px*var(--k));line-height:1.4}
+.tarjeta{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(16px*var(--k));line-height:1.4}
+.tarjeta .h{font-size:calc(21px*var(--k));font-weight:600}
+.tarjeta .c{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.06em;text-transform:uppercase}
+.tarjeta .x{color:var(--muted)}
+.tarjeta.b{border-top-color:var(--b)} .tarjeta.b .c{color:var(--b)}
+.tarjeta.gris{border-top-color:var(--line)} .tarjeta.gris .c{color:var(--muted)}
+.flujo{display:flex;align-items:stretch;gap:0}
+.flujo .tarjeta{flex:1}
+.flujo .sig{display:flex;align-items:center;padding:0 10px;color:var(--a);font-family:var(--f-mono);font-size:24px}
+
+/* controles en pantalla */
+/* los controles aparecen al mover el mouse y se esconden solos, para no tapar la diapositiva */
+.ctrl{position:fixed;right:14px;bottom:12px;display:flex;gap:6px;opacity:0;transition:opacity .3s;z-index:5}
+.ctrl:hover,.ctrl:focus-within,body.mueve .ctrl{opacity:1}
+.ctrl button{font-family:var(--f-mono);font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+.progreso{position:fixed;left:0;bottom:0;height:3px;background:var(--a);transition:width .25s;z-index:4}
+
+@media print{
+  @page{size:1600px 900px;margin:0}
+  body{overflow:visible;background:var(--bg)}
+  .deck{position:static}
+  .slide{position:relative;left:auto;top:auto;margin:0;transform:none;display:flex;box-shadow:none;break-after:page}
+  .ctrl,.progreso{display:none}
+}
+
+/* sesión 2: puntos de valoración en la comparativa de estilos */
+.pts{font-family:var(--f-mono);color:var(--a);letter-spacing:2px;white-space:nowrap;font-size:1.05em}
+.pts i{font-style:normal;color:var(--line)}
+.tabla-pts td{white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Acuerdos de clase</span></header>
+<div class="titular">
+  <div><h1>Nuestro ritual de inicio</h1><div class="exp">Tres acuerdos que repetiremos <b>al comenzar cada sesión</b>, para que todo el grupo arranque al mismo tiempo y con la misma información.</div></div>
+  <div class="chips"><span class="chip tipo">Cada clase</span></div>
+</div>
+<div class="lienzo" style="grid-template-rows:1fr auto;gap:22px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">01 · Inicio puntual</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">7:10</span>
+      <span class="h" style="font-size:28px">Comenzamos a las 7:10 en punto</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Los primeros minutos son de tolerancia para que todos los compañeros lleguen; a las 7:10 damos inicio a la clase.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">02 · Repositorio y LMS</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">LMS</span>
+      <span class="h" style="font-size:28px">Revisión del repositorio y el LMS</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Revisamos juntos el repositorio del curso y el LMS: actividades, lecturas y entregas de la sesión, para que todos lleguen preparados.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">03 · Asistencia</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">✓</span>
+      <span class="h" style="font-size:28px">Llamar lista</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Cerramos el inicio llamando lista, conforme a las disposiciones de la administración académica.</span>
+    </div>
+  </div>
+  <div class="panel suave"><p class="grande">Un mismo inicio en cada sesión nos permite <b>aprovechar mejor el tiempo</b> y asegura que nadie se pierda lo importante.</p></div>
+</div>
+<footer class="pie"><span class="idea">Puntualidad, repositorio y LMS, asistencia: así empieza cada clase.</span><span class="num"><span class="sello">iSAQB · SEI</span>1 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Repaso</span></header>
+<div class="titular">
+  <div><h1>Dónde quedamos</h1><div class="exp">La Sesión 1 ordenó el código <b>por dentro de cada pieza</b>. Hoy subimos un nivel: la forma de todo el sistema.</div></div>
+  <div class="chips"><span class="chip tipo">Sesión 1</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr) 1fr;gap:16px">
+    <div class="tarjeta"><span class="c">DRY</span><span class="h">Una regla, un lugar</span><span>El máximo de créditos y la verificación de sesión viven en un solo archivo.</span></div>
+    <div class="tarjeta"><span class="c">KISS</span><span class="h">Simplificar destapa errores</span><span>El «motor de reglas» pasó a dos funciones y apareció el prerrequisito que no bloqueaba.</span></div>
+    <div class="tarjeta"><span class="c">SOLID</span><span class="h">Cambiar una cosa, tocar una pieza</span><span>Tokens <code>PASARELA</code> y <code>NOTIFICADOR</code>; <code>inscribir()</code> orquesta en 35 líneas.</span></div>
+    <div class="panel"><h3>La evidencia</h3>
+      <div class="filas" style="--cols:1fr auto">
+        <div class="fila"><span>Pruebas</span><b class="mono">63 → 67</b></div>
+        <div class="fila"><span>Problemas</span><b class="mono">35 → 27</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel alerta">
+    <h3>Lo que la Sesión 1 no arregló · Cupo tiene dos estilos mezclados</h3>
+    <div class="filas" style="--cols:290px 1fr">
+      <div class="fila"><code>InscripcionesService</code><span>Sí es un servicio… pero también <b>abre los archivos</b> directamente.</span></div>
+      <div class="fila"><code>OfertaController</code><span>Lee <code>oferta.json</code> e <code>inscripciones.json</code> y <b>calcula los cupos</b> ahí mismo.</span></div>
+      <div class="fila"><code>KardexController</code><span>Llama <b>por HTTP</b> al sistema académico y traduce el CSV.</span></div>
+      <div class="fila"><code>ReportesController</code><span>Lee tres archivos y <b>suma lo recaudado</b>.</span></div>
+    </div>
+    <p class="grande">Nadie decidió que fuera así, y <b>nadie lo dejó escrito</b>.</p>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Los principios ordenan las piezas; el estilo ordena el sistema.</span><span class="num"><span class="sello">iSAQB · SEI</span>2 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Para empezar</span></header>
+<div class="titular">
+  <div><h1>TokTik ya no se rompe… y ahora alguien propone partirlo en 20 microservicios</h1><div class="exp">«Si Netflix y la app oficial lo hacen, <b>nosotros también</b>». ¿Es un buen argumento?</div></div>
+  <div class="chips"><span class="chip tipo">Un experimento mental</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1.1fr;gap:30px;align-items:start">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <table class="tabla"><thead><tr><th></th><th>la app oficial</th><th>TokTik · nuestro clon</th></tr></thead><tbody>
+      <tr><td colspan="3" style="font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--a);background:var(--a-soft);padding:7px 16px">Quién la construye · desarrolladores</td></tr>
+      <tr><td>Desarrolladores</td><td>miles</td><td>3</td></tr>
+      <tr><td>Equipos en paralelo</td><td>cientos</td><td>1</td></tr>
+      <tr><td>Quién opera los servidores</td><td>equipos de operación</td><td>los mismos 3</td></tr>
+      <tr><td colspan="3" style="font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;color:var(--a);background:var(--a-soft);padding:7px 16px">Quién la usa · usuarios finales</td></tr>
+      <tr><td>Personas que la usan</td><td>cientos de millones</td><td>unos miles</td></tr>
+      <tr><td>Microservicios</td><td><span class="estado si">encaja</span></td><td><span class="estado no">¿para qué?</span></td></tr>
+    </tbody></table>
+    <div class="panel suave"><p class="grande">El mismo estilo que a ellos les resuelve un problema, a nosotros nos puede <b>crear diez</b>.</p></div>
+  </div>
+  <div class="panel">
+    <h3>No es teoría · empresas que eligieron por contexto</h3>
+    <div class="filas" style="--cols:170px 1fr">
+      <div class="fila"><b>Prime Video</b><span>En 2023 su servicio de monitoreo de calidad de video pasó de microservicios a <b>un monolito</b> y redujo el costo de infraestructura en más de un 90 %.</span></div>
+      <div class="fila"><b>Segment</b><span>En 2018 publicó <i>«Goodbye Microservices»</i>: volvió a un solo servicio porque más de 100 servicios pequeños eran inmanejables para su equipo.</span></div>
+      <div class="fila"><b>Shopify</b><span>Una de las tiendas más grandes del mundo funciona sobre un <b>monolito modular</b>: un despliegue, bien dividido por dentro.</span></div>
+    </div>
+    <p style="color:var(--muted)">Ninguno «volvió atrás»: eligieron el estilo que encajaba con su equipo, su dominio y su escala.</p>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El estilo correcto depende del contexto, no de quién más lo usa.</span><span class="num"><span class="sello">iSAQB · SEI</span>3 / 28</span></footer>
+</section>
+
+<section class="slide portada">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Unidad 1 · Pensamiento arquitectónico</span></header>
+<div class="cuerpo">
+  <div>
+    <div class="ses">Arquitectura de Software · Sesión 02</div>
+    <h1>Estilos y patrones arquitectónicos</h1>
+    <p class="lede">Elegir un estilo es elegir qué cosas serán fáciles de cambiar y cuáles no. Hoy comparamos cinco, decidimos con argumentos y lo aplicamos a Cupo.</p>
+    <dl class="ficha"><div><dt>Duración</dt><dd>3 horas</dd></div><div><dt>Caso de estudio</dt><dd>Cupo · NestJS</dd></div><div><dt>Lectura</dt><dd>Richards y Ford · parte II</dd></div></dl>
+  </div>
+  <nav class="agenda"><h2>4 partes de la clase</h2><div class="item"><span class="n">01</span><span class="t">Estilo y patrón<span class="s">La diferencia, partiendo del MVC del Diplomado</span></span></div><div class="item"><span class="n">02</span><span class="t">Cinco estilos<span class="s">Monolito, capas, hexagonal, eventos y microservicios</span></span></div><div class="item"><span class="n">03</span><span class="t">Trade-offs y selección<span class="s">Equipo, dominio y escala, en una matriz de decisión</span></span></div><div class="item"><span class="n">04</span><span class="t">Cupo por capas y cierre<span class="s">La decisión aplicada y verificada con pruebas</span></span></div></nav>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>4 / 28</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 01</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 01</div>
+  <h1>Estilo y patrón</h1>
+  <p class="lede">Dos palabras que se usan como sinónimos y no lo son. Partimos de algo que ya conoces: el patrón MVC del Diplomado.</p>
+  <div class="temas"><span class="chip">Estilo arquitectónico</span><span class="chip">Patrón arquitectónico</span><span class="chip">Patrón de diseño</span><span class="chip">MVC</span><span class="chip">¿Estilo o patrón?</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>5 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 01 · Estilo y patrón</span></header>
+<div class="titular">
+  <div><h1>Estilo arquitectónico, patrón arquitectónico y patrón de diseño</h1><div class="exp">Los tres son soluciones conocidas; los separa <b>cuánto del sistema abarcan</b></div></div>
+  <div class="chips"><span class="chip tipo">Concepto</span><span class="chip origen">Shaw y Garlan · 1996</span></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:18px;align-content:start">
+  <table class="tabla"><thead><tr><th>nivel</th><th>qué es</th><th>alcance</th><th>ejemplos</th><th>en un edificio</th></tr></thead><tbody>
+    <tr><td>Estilo arquitectónico</td><td>La forma general de <b>todo el sistema</b>: qué tipos de piezas hay y qué reglas siguen para conectarse.</td><td><span class="estado no">todo el sistema</span></td><td>Monolito, capas, hexagonal, event-driven, microservicios.</td><td class="m">La estructura: muros portantes o columnas y vigas.</td></tr>
+    <tr><td>Patrón arquitectónico</td><td>Una solución probada a un <b>problema recurrente</b> que aparece en una parte del sistema.</td><td><span class="estado pend">una parte</span></td><td>MVC, repositorio, CQRS, circuit breaker, API gateway.</td><td class="m">La escalera de emergencia: resuelve la evacuación.</td></tr>
+    <tr><td>Patrón de diseño</td><td>Una solución a nivel de <b>clases y objetos</b>.</td><td><span class="estado si">unas clases</span></td><td>Estrategia, decorador, fábrica, observador.</td><td class="m">La bisagra de una puerta.</td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:22px">
+    <div class="panel"><h3>Lo que define a un estilo</h3><p class="grande">Shaw y Garlan: un estilo fija un <b>vocabulario</b> de componentes y conectores y las <b>restricciones</b> sobre cómo combinarlos. Al elegirlo heredas sus ventajas y sus costos, ya estudiados.</p></div>
+    <div class="panel suave"><h3>Ya los usaste en Cupo</h3><p><b>Estrategia</b> (patrón de diseño): un arancel por tipo de estudiante, en la Sesión 1. <b>Repositorio</b> (patrón arquitectónico): lo construimos hoy. <b>Capas</b> (estilo): lo que decidimos hoy.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El estilo da la forma; los patrones resuelven problemas dentro de esa forma.</span><span class="num"><span class="sello">iSAQB · SEI</span>6 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 01 · Estilo y patrón</span></header>
+<div class="titular">
+  <div><h1>MVC</h1><div class="exp"><b>Model-View-Controller</b> · el punto de partida del Diplomado</div></div>
+  <div class="chips"><span class="chip tipo">Patrón arquitectónico</span><span class="chip origen">Trygve Reenskaug · Xerox PARC · 1979</span></div>
+</div>
+<div class="cuerpo">
+  <p class="defin">MVC separa la <b>interfaz</b> en tres papeles: el modelo guarda el estado, la vista lo muestra y el controlador recibe lo que hace el usuario. Organiza <b>cómo entra una petición y cómo sale la respuesta</b>.</p><div class="col"><div class="piezas" style="grid-template-columns:repeat(1,1fr)"><div class="pieza"><span class="k">M</span><span class="h">Modelo</span><span class="x">Los datos y su estado. En la web: lo que se devuelve como JSON.</span></div><div class="pieza"><span class="k">V</span><span class="h">Vista</span><span class="x">Cómo se presenta. En Cupo: el frontend en <code>public/</code>.</span></div><div class="pieza"><span class="k">C</span><span class="h">Controlador</span><span class="x">Recibe la acción y decide qué responder. En Nest: <code>@Controller()</code>.</span></div></div></div>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Trygve Reenskaug lo propone en Xerox PARC (1978–79) para las interfaces gráficas de Smalltalk. La web lo adopta con Rails, Spring MVC, Laravel y Nest.</dd></div><div class="dato"><dt>Qué resuelve</dt><dd>Separa la interfaz de los datos: cambiar cómo se ve no obliga a tocar el modelo, y un mismo modelo admite varias vistas.</dd></div><div class="dato"><dt>Por qué es patrón</dt><dd>Resuelve un problema puntual, <b>la interfaz</b>, no la forma de todo el sistema. Vive dentro de la capa de presentación.</dd></div><div class="dato no"><dt>Cuidado</dt><dd>MVC <b>no dice dónde va el negocio</b> ni dónde están los datos. Sin otra regla nace el <b>controlador gordo</b>: el que hace de todo.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>Cupo usa MVC desde el día 1 y aun así <code>OfertaController</code> lee archivos y calcula cupos. MVC <b>no lo impidió</b>, porque no es su trabajo: hace falta un estilo que diga dónde va cada cosa.</span></div>
+<footer class="pie"><span class="idea">MVC ordena la interfaz; un estilo ordena todo el sistema.</span><span class="num"><span class="sello">iSAQB · SEI</span>7 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 01 · Estilo y patrón</span></header>
+<div class="titular">
+  <div><h1>El controlador gordo de Cupo</h1><div class="exp">El mismo endpoint, <code>GET /api/oferta</code>: solo con MVC, y después de aplicar el <b>estilo por capas</b></div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.25fr 1fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span class="estado no" style="align-self:flex-start">inicio · solo MVC · oferta.controller.ts</span>
+<pre class="cod"><span class="k">@Get</span>(<span class="k">'oferta'</span>)
+oferta() {
+  <span class="c">// 1 · lee archivos: trabajo de la capa de datos</span>
+  <span class="k">const</span> oferta = leerJson(<span class="k">'oferta.json'</span>);
+  <span class="k">const</span> inscripciones = leerJson(<span class="k">'inscripciones.json'</span>);
+  <span class="c">// 2 · calcula cupos: trabajo del negocio</span>
+  <span class="k">const</span> materias = oferta.materias.map((m) =&gt; {
+    <span class="k">const</span> grupos = oferta.paralelos
+      .filter((p) =&gt; p.sigla === m.sigla)
+      .map((g) =&gt; { <span class="c">/* inscritos, disponibles… */</span> });
+    <span class="k">return</span> { ...m, paralelos: grupos };
+  });
+  <span class="c">// 3 · responde: lo único que le toca</span>
+  <span class="k">return</span> { gestion: oferta.gestion, materias, … };
+}</pre>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span class="estado si" style="align-self:flex-start">solución · MVC + capas · oferta.controller.ts</span>
+<pre class="cod"><span class="c">// Capa de presentación:</span>
+<span class="c">// recibe, delega y responde.</span>
+<span class="k">constructor</span>(
+  <span class="k">private readonly</span> servicio: OfertaService,
+) {}
+
+<span class="k">@Get</span>(<span class="k">'oferta'</span>)
+oferta() {
+  <span class="k">return</span> <span class="k">this</span>.servicio.ofertaDeLaGestion();
+}</pre>
+    <div class="panel suave"><p>Se aplicó el estilo <b>por capas</b>: el cálculo se mudó tal cual a <code>OfertaService</code> (negocio) y la lectura a <code>OfertaRepositorio</code> (datos). <b>MVC no se quitó</b>: el controlador sigue siendo la C, ahora dentro de la capa de presentación. El contrato sigue en 30 de 30.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Tres responsabilidades en un handler: tres motivos para tocarlo.</span><span class="num"><span class="sello">iSAQB · SEI</span>8 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 01 · Estilo y patrón</span></header>
+<div class="titular">
+  <div><h1>¿Estilo o patrón?</h1><div class="exp">Clasifica cada uno antes de ver la respuesta: <b>¿abarca todo el sistema o resuelve una parte?</b></div></div>
+  <div class="chips"><span class="chip tipo">Actividad · 5 min</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+    <div class="tarjeta"><span class="c">estilo</span><span class="h">Microservicios</span><span class="x">Define cómo se despliega y se comunica todo.</span></div>
+    <div class="tarjeta b"><span class="c">patrón arquitectónico</span><span class="h">Repositorio</span><span class="x">Esconde dónde están los datos de una entidad.</span></div>
+    <div class="tarjeta"><span class="c">estilo</span><span class="h">Event-driven</span><span class="x">Todas las piezas se hablan por eventos.</span></div>
+    <div class="tarjeta b"><span class="c">patrón arquitectónico</span><span class="h">Circuit breaker</span><span class="x">Protege una llamada a un sistema que falla.</span></div>
+    <div class="tarjeta gris"><span class="c">patrón de diseño</span><span class="h">Estrategia</span><span class="x">Un arancel por tipo de estudiante.</span></div>
+    <div class="tarjeta b"><span class="c">patrón arquitectónico</span><span class="h">MVC</span><span class="x">Organiza la interfaz, no el sistema.</span></div>
+    <div class="tarjeta"><span class="c">estilo</span><span class="h">Capas</span><span class="x">Cada pieza del sistema pertenece a una capa.</span></div>
+    <div class="tarjeta b"><span class="c">patrón arquitectónico</span><span class="h">CQRS</span><span class="x">Separa lecturas de escrituras en una parte.</span></div>
+  </div>
+  <div class="cupo"><span class="et">Ojo</span><span>La frontera no es exacta: hay autores que llaman «patrón» a capas o a hexagonal (POSA habla del <i>patrón Layers</i>). Lo que importa no es la etiqueta sino la pregunta: <b>¿esta decisión afecta a todo el sistema o a una parte?</b> Si afecta a todo, es cara de cambiar.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">El alcance de la decisión dice cuánto cuesta cambiarla.</span><span class="num"><span class="sello">iSAQB · SEI</span>9 / 28</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 02</div>
+  <h1>Cinco estilos</h1>
+  <p class="lede">Para cada uno: qué es, de dónde viene, qué gana, qué paga y cuándo encaja. Y dónde aparece en Cupo durante el módulo.</p>
+  <div class="temas"><span class="chip">Monolito</span><span class="chip">Capas</span><span class="chip">Hexagonal</span><span class="chip">Event-driven</span><span class="chip">Microservicios</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>10 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Cinco estilos</span></header>
+<div class="titular">
+  <div><h1>El mapa de los cinco</h1><div class="exp">Dos preguntas distintas: <b>cómo se despliega</b> y <b>cómo se organiza por dentro</b></div></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:20px;align-content:start">
+  <table class="tabla"><thead><tr><th>estilo</th><th>unidades de despliegue</th><th>cómo se comunican las piezas</th><th>la regla que lo define</th><th>en el módulo</th></tr></thead><tbody>
+    <tr><td>Monolito</td><td>una</td><td>llamadas de función, en el mismo proceso</td><td>todo se despliega junto</td><td class="m mono">Cupo desde el día 1</td></tr>
+    <tr><td>Capas</td><td>una, casi siempre</td><td>llamadas de una capa a la de abajo</td><td>cada capa usa solo la de abajo</td><td class="m mono">hoy · Sesión 2</td></tr>
+    <tr><td>Hexagonal</td><td>una, casi siempre</td><td>el núcleo habla por puertos; los adaptadores traducen</td><td>el núcleo no depende de nada externo</td><td class="m mono">Sesión 6</td></tr>
+    <tr><td>Event-driven</td><td>una o varias</td><td>eventos publicados en un bus o broker</td><td>quien publica no sabe quién escucha</td><td class="m mono">Sesión 8</td></tr>
+    <tr><td>Microservicios</td><td>varias, independientes</td><td>por la red: HTTP o colas</td><td>cada servicio es dueño de sus datos</td><td class="m mono">Maestría</td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <div class="panel suave"><h3>Se combinan</h3><p class="grande">Un sistema real mezcla estilos <b>a propósito</b>: un monolito modular con hexagonal dentro de cada módulo y eventos entre módulos. El problema de Cupo no es mezclar, es mezclar <b>sin haberlo decidido</b>.</p></div>
+    <div class="panel"><h3>Monolito ≠ desorden</h3><p class="grande">«Monolito» habla del <b>despliegue</b>. Capas y hexagonal hablan de la <b>organización interna</b>. Un monolito puede estar muy bien organizado por dentro.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Despliegue y organización interna son dos decisiones distintas.</span><span class="num"><span class="sello">iSAQB · SEI</span>11 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Estilo 1 de 5</span></header>
+<div class="titular">
+  <div><h1>Monolito</h1><div class="exp"><b>Monolithic architecture</b> · un solo programa que se despliega entero</div></div>
+  <div class="chips"><span class="chip tipo">Estilo</span><span class="chip origen">el punto de partida de casi todo sistema</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <div class="col"><p class="defin">Toda la aplicación (interfaz, reglas y acceso a datos) vive en <b>un solo proceso</b> y se despliega como <b>una sola unidad</b>. Una llamada entre piezas es una llamada de función.</p>
+  <blockquote class="cita">«No deberías empezar un proyecto nuevo con microservicios, aunque estés seguro de que tu aplicación será lo bastante grande.»<footer>Martin Fowler · MonolithFirst (2015)</footer></blockquote></div>
+  <svg class="dg" viewBox="0 0 660 270" style="width:100%;height:250px" role="img" aria-label="Monolito: el navegador habla con un solo proceso que contiene todos los módulos y guarda en archivos">
+    <defs><marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <rect x="0" y="100" width="120" height="66" rx="10" class="ext"/><text x="60" y="139" text-anchor="middle" class="tt" style="font-size:19px">Navegador</text>
+    <path d="M120,133 L176,133" class="flecha" marker-end="url(#m1)"/>
+    <rect x="184" y="8" width="300" height="250" rx="14" class="acento"/>
+    <text x="334" y="40" text-anchor="middle" class="tt">Cupo · un proceso</text>
+    <rect x="202" y="58" width="128" height="50" rx="8" class="caja"/><text x="266" y="89" text-anchor="middle">inscripciones</text>
+    <rect x="338" y="58" width="128" height="50" rx="8" class="caja"/><text x="402" y="89" text-anchor="middle">oferta</text>
+    <rect x="202" y="118" width="128" height="50" rx="8" class="caja"/><text x="266" y="149" text-anchor="middle">pagos</text>
+    <rect x="338" y="118" width="128" height="50" rx="8" class="caja"/><text x="402" y="149" text-anchor="middle">kardex</text>
+    <rect x="202" y="178" width="264" height="50" rx="8" class="caja"/><text x="334" y="209" text-anchor="middle">reportes · auth</text>
+    <path d="M484,133 L540,133" class="flecha" marker-end="url(#m1)"/>
+    <rect x="548" y="100" width="112" height="66" rx="10" class="caja"/><text x="604" y="130" text-anchor="middle" class="tt" style="font-size:19px">datos/</text><text x="604" y="152" text-anchor="middle" class="tm">JSON</text>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Es la forma por defecto. Foote y Yoder (1997) nombran su versión degradada: la <b>gran bola de barro</b>, sin estructura reconocible.</dd></div><div class="dato"><dt>Gana</dt><dd>Simple de construir, probar, depurar y desplegar. Sin fallas de red entre piezas. Las transacciones son locales.</dd></div><div class="dato no"><dt>Paga</dt><dd>Sin reglas internas se vuelve bola de barro. <b>Todo escala junto</b>: no se pueden poner más máquinas solo para inscripciones. Un error puede tumbar todo.</dd></div><div class="dato"><dt>Encaja cuando</dt><dd>Equipo chico, producto nuevo o dominio aún incierto. Su versión madura es el <b>monolito modular</b>: un despliegue, módulos con fronteras claras.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>Cupo es un monolito desde el día 1: una app Nest que sirve la API y el frontend. Eso <b>no es el problema</b>; el problema es que por dentro no tiene reglas. En la Sesión 7 lo convertimos en monolito modular.</span></div>
+<footer class="pie"><span class="idea">Monolito habla del despliegue, no del desorden.</span><span class="num"><span class="sello">iSAQB · SEI</span>12 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Estilo 2 de 5</span></header>
+<div class="titular">
+  <div><h1>Arquitectura en capas</h1><div class="exp"><b>Layered architecture</b> · n-tier</div></div>
+  <div class="chips"><span class="chip tipo">Estilo</span><span class="chip origen">Dijkstra · sistema THE · 1968</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <div class="col"><p class="defin">El sistema se divide en <b>capas horizontales</b> y cada una solo usa la de abajo. La clásica tiene tres: <b>presentación</b> (recibe y responde), <b>negocio</b> (aplica las reglas) y <b>datos</b> (guarda y lee).</p>
+  <div class="panel" style="padding:12px 18px"><p><b>Capa cerrada</b>: no se la puede saltar; la presentación no llega a los datos sin pasar por el negocio. <b>Capa abierta</b>: se permite saltarla, y se pierde aislamiento.</p></div></div>
+  <svg class="dg" viewBox="0 0 660 270" style="width:100%;height:250px" role="img" aria-label="Tres capas apiladas: presentación usa negocio, negocio usa datos">
+    <defs><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta a" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <rect x="0" y="4" width="660" height="66" rx="10" class="caja"/><text x="24" y="44" class="tt">Presentación</text><text x="636" y="44" text-anchor="end" class="tc">*.controller.ts · recibe y responde</text>
+    <path d="M330,70 L330,98" class="flecha a" marker-end="url(#m2)"/><text x="344" y="91" class="tc a">usa</text>
+    <rect x="0" y="102" width="660" height="66" rx="10" class="acento"/><text x="24" y="142" class="tt">Negocio</text><text x="636" y="142" text-anchor="end" class="tc">*.service.ts · aplica las reglas</text>
+    <path d="M330,168 L330,196" class="flecha a" marker-end="url(#m2)"/><text x="344" y="189" class="tc a">usa</text>
+    <rect x="0" y="200" width="660" height="66" rx="10" class="caja"/><text x="24" y="240" class="tt">Datos</text><text x="636" y="240" text-anchor="end" class="tc">*.repositorio.ts · *.client.ts · disco y red</text>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Dijkstra estructura el sistema operativo THE en niveles (1968). Buschmann et al. lo documentan como <i>Layers</i> en POSA (1996).</dd></div><div class="dato"><dt>Gana</dt><dd>Fácil de entender y enseñar. Separa motivos de cambio: cambiar dónde se guardan los datos toca una sola capa. Cada capa se prueba por separado.</dd></div><div class="dato no"><dt>Paga</dt><dd>El negocio <b>depende de los datos</b>. Un cambio funcional atraviesa las tres capas. Antipatrón <b>sumidero</b>: capas que solo pasan la llamada.</dd></div><div class="dato"><dt>Encaja cuando</dt><dd>Equipos chicos, dominios de complejidad media, sistemas tipo CRUD con reglas. Es el estilo más común y un buen primer paso.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>El estilo que aplicamos hoy. El <b>sufijo del archivo</b> dice a qué capa pertenece, y tres pruebas fallan si alguien se salta una. La dependencia del negocio hacia los datos se invierte en la Sesión 6.</span></div>
+<footer class="pie"><span class="idea">Las capas valen lo que valen sus reglas: si nadie las verifica, se erosionan.</span><span class="num"><span class="sello">iSAQB · SEI</span>13 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Estilo 3 de 5</span></header>
+<div class="titular">
+  <div><h1>Hexagonal</h1><div class="exp"><b>Ports and adapters</b> · puertos y adaptadores</div></div>
+  <div class="chips"><span class="chip tipo">Estilo</span><span class="chip origen">Alistair Cockburn · 2005</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <div class="col"><p class="defin">El <b>núcleo</b> (dominio y casos de uso) no depende de nada externo. Declara <b>puertos</b> (interfaces) y el mundo exterior se conecta con <b>adaptadores</b>: HTTP, base de datos, banco, correo.</p>
+  <div class="panel" style="padding:12px 18px"><p><b>Adaptadores que conducen</b> (izquierda): llaman al núcleo, como un controlador o una prueba. <b>Adaptadores conducidos</b> (derecha): el núcleo los usa a través de un puerto, como el repositorio o la pasarela.</p></div></div>
+  <svg class="dg" viewBox="0 0 660 270" style="width:100%;height:250px" role="img" aria-label="Hexágono: el núcleo al centro, adaptadores que conducen a la izquierda y adaptadores conducidos a la derecha">
+    <defs><marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <text x="75" y="22" text-anchor="middle" class="tc a">CONDUCEN</text>
+    <text x="585" y="12" text-anchor="middle" class="tc b">CONDUCIDOS</text>
+    <rect x="0" y="50" width="150" height="56" rx="10" class="caja"/><text x="75" y="84" text-anchor="middle" style="font-size:17px">Controlador HTTP</text>
+    <rect x="0" y="164" width="150" height="56" rx="10" class="caja"/><text x="75" y="198" text-anchor="middle">Pruebas</text>
+    <polygon points="228,135 279,47 381,47 432,135 381,223 279,223" class="acento"/>
+    <text x="330" y="130" text-anchor="middle" class="tt" style="font-size:26px">Núcleo</text>
+    <text x="330" y="158" text-anchor="middle" class="tm">dominio + casos de uso</text>
+    <path d="M150,78 L244,104" class="flecha" marker-end="url(#m3)"/>
+    <path d="M150,192 L244,166" class="flecha" marker-end="url(#m3)"/>
+    <rect x="510" y="22" width="150" height="50" rx="10" class="naranja"/><text x="585" y="53" text-anchor="middle">JSON / SQLite</text>
+    <rect x="510" y="110" width="150" height="50" rx="10" class="naranja"/><text x="585" y="141" text-anchor="middle">Pasarela QR</text>
+    <rect x="510" y="198" width="150" height="50" rx="10" class="naranja"/><text x="585" y="229" text-anchor="middle">Correo</text>
+    <path d="M412,100 L502,50" class="flecha" marker-end="url(#m3)"/>
+    <path d="M432,135 L502,135" class="flecha" marker-end="url(#m3)"/>
+    <path d="M412,170 L502,220" class="flecha" marker-end="url(#m3)"/>
+    <text x="462" y="128" text-anchor="middle" class="tc">puerto</text>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Alistair Cockburn publica <i>Hexagonal Architecture</i> (2005). Primas cercanas: Onion (Palermo, 2008) y Clean Architecture (Martin, 2012).</dd></div><div class="dato"><dt>Gana</dt><dd>El negocio se prueba <b>sin red ni disco</b>. Cambiar de base de datos o de banco es cambiar un adaptador. El núcleo no se contamina con detalles.</dd></div><div class="dato no"><dt>Paga</dt><dd>Más archivos, interfaces y tokens. Para un CRUD simple es <b>ceremonia de más</b>. Hay que traducir entre el modelo del núcleo y el de cada adaptador.</dd></div><div class="dato"><dt>Encaja cuando</dt><dd>Reglas de negocio ricas que viven años, varios sistemas externos que pueden cambiar, o cuando la testabilidad es un driver.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>Ya empezaste en la Sesión 1: <code>PASARELA</code> y <code>NOTIFICADOR</code> son puertos. En la Sesión 6 el núcleo deja de saber dónde se guardan los datos y se cambia JSON por SQLite <b>sin tocarlo</b>.</span></div>
+<footer class="pie"><span class="idea">Las dependencias apuntan hacia el negocio, nunca hacia afuera.</span><span class="num"><span class="sello">iSAQB · SEI</span>14 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Estilo 4 de 5</span></header>
+<div class="titular">
+  <div><h1>Event-driven</h1><div class="exp"><b>Event-driven architecture</b> · EDA</div></div>
+  <div class="chips"><span class="chip tipo">Estilo</span><span class="chip origen">publicar / suscribir · Hohpe y Woolf · 2003</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <div class="col"><p class="defin">Las piezas se comunican <b>publicando eventos</b>, hechos ya ocurridos («se confirmó una inscripción»), y otras piezas <b>reaccionan</b> sin que el emisor sepa quiénes son.</p>
+  <div class="panel" style="padding:12px 18px"><p>Dos topologías (Richards y Ford): <b>broker</b>, donde cada pieza reacciona por su cuenta y nadie coordina, y <b>mediador</b>, donde un orquestador decide el orden de los pasos.</p></div></div>
+  <svg class="dg" viewBox="0 0 660 270" style="width:100%;height:250px" role="img" aria-label="Inscripciones publica un evento en el bus; notificaciones, reportes y auditoría reaccionan">
+    <defs><marker id="m4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta b" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <rect x="0" y="105" width="150" height="62" rx="10" class="acento"/><text x="75" y="142" text-anchor="middle" class="tt" style="font-size:19px">Inscripciones</text>
+    <path d="M150,136 L202,136" class="flecha b" marker-end="url(#m4)"/><text x="176" y="124" text-anchor="middle" class="tc b">publica</text>
+    <rect x="210" y="92" width="210" height="88" rx="12" class="naranja"/><text x="315" y="128" text-anchor="middle" class="tt" style="font-size:20px">Bus de eventos</text><text x="315" y="156" text-anchor="middle" class="tc">InscripcionConfirmada</text>
+    <path d="M420,118 L482,46" class="flecha b" marker-end="url(#m4)"/>
+    <path d="M420,136 L482,136" class="flecha b" marker-end="url(#m4)"/>
+    <path d="M420,154 L482,226" class="flecha b" marker-end="url(#m4)"/>
+    <text x="575" y="10" text-anchor="middle" class="tc">REACCIONAN</text>
+    <rect x="490" y="20" width="170" height="52" rx="10" class="caja"/><text x="575" y="52" text-anchor="middle">Notificaciones</text>
+    <rect x="490" y="110" width="170" height="52" rx="10" class="caja"/><text x="575" y="142" text-anchor="middle">Reportes</text>
+    <rect x="490" y="200" width="170" height="52" rx="10" class="caja"/><text x="575" y="232" text-anchor="middle">Auditoría</text>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Viene de la mensajería empresarial: el patrón publicar/suscribir, catalogado por Hohpe y Woolf en <i>Enterprise Integration Patterns</i> (2003).</dd></div><div class="dato"><dt>Gana</dt><dd>Desacople: agregar quien reacciona <b>no toca al emisor</b>. Si el correo falla, la inscripción no falla. Absorbe picos y escala muy bien.</dd></div><div class="dato no"><dt>Paga</dt><dd>Difícil seguir qué pasó y en qué orden. <b>Consistencia eventual</b>: el reporte se entera «un poco después». Eventos duplicados o perdidos.</dd></div><div class="dato"><dt>Encaja cuando</dt><dd>Un hecho dispara varias reacciones independientes, hay picos de carga o partes que no deben bloquearse entre sí.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>Hoy <code>inscribir()</code> cobra, guarda y envía el correo en una sola cadena: si el correo falla, todo falla. En la Sesión 8, <code>InscripcionConfirmada</code> desacopla las reacciones.</span></div>
+<footer class="pie"><span class="idea">Quien avisa no necesita saber quién escucha.</span><span class="num"><span class="sello">iSAQB · SEI</span>15 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 02 · Estilo 5 de 5</span></header>
+<div class="titular">
+  <div><h1>Microservicios</h1><div class="exp"><b>Microservices</b> · servicios pequeños, desplegados por separado</div></div>
+  <div class="chips"><span class="chip tipo">Estilo</span><span class="chip origen">James Lewis y Martin Fowler · 2014</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <div class="col"><p class="defin">Varios servicios pequeños, cada uno alrededor de una capacidad del negocio, que se <b>despliegan por separado</b>, son <b>dueños de sus datos</b> y se comunican por la red.</p>
+  <blockquote class="cita">«Toda organización que diseña un sistema producirá un diseño cuya estructura es una copia de la estructura de comunicación de la organización.»<footer>Melvin Conway · Ley de Conway (1968)</footer></blockquote></div>
+  <svg class="dg" viewBox="0 0 660 280" style="width:100%;height:250px" role="img" aria-label="Un API gateway reparte a tres servicios, cada uno con su propia base de datos">
+    <defs><marker id="m5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <rect x="230" y="0" width="200" height="50" rx="10" class="ext"/><text x="330" y="31" text-anchor="middle">API gateway</text>
+    <path d="M300,50 L95,98" class="flecha" marker-end="url(#m5)"/>
+    <path d="M330,50 L330,98" class="flecha" marker-end="url(#m5)"/>
+    <path d="M360,50 L565,98" class="flecha" marker-end="url(#m5)"/>
+    <rect x="0" y="104" width="190" height="60" rx="10" class="acento"/><text x="95" y="140" text-anchor="middle" class="tt" style="font-size:19px">inscripciones</text>
+    <rect x="235" y="104" width="190" height="60" rx="10" class="acento"/><text x="330" y="140" text-anchor="middle" class="tt" style="font-size:19px">pagos</text>
+    <rect x="470" y="104" width="190" height="60" rx="10" class="acento"/><text x="565" y="140" text-anchor="middle" class="tt" style="font-size:19px">oferta</text>
+    <path d="M190,134 L235,134" class="linea" style="stroke-dasharray:5 4"/><path d="M425,134 L470,134" class="linea" style="stroke-dasharray:5 4"/>
+    <text x="330" y="272" text-anchor="middle" class="tc">se hablan por la red · HTTP o colas</text>
+    <rect x="45" y="204" width="100" height="50" rx="8" class="caja"/><text x="95" y="235" text-anchor="middle" class="tm">su base</text>
+    <rect x="280" y="204" width="100" height="50" rx="8" class="caja"/><text x="330" y="235" text-anchor="middle" class="tm">su base</text>
+    <rect x="515" y="204" width="100" height="50" rx="8" class="caja"/><text x="565" y="235" text-anchor="middle" class="tm">su base</text>
+    <path d="M95,164 L95,204" class="linea"/><path d="M565,164 L565,204" class="linea"/><path d="M330,164 L330,204" class="linea"/>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>El artículo <i>Microservices</i> de Lewis y Fowler (2014) lo nombra a partir de lo que hacían Netflix y Amazon con cientos de equipos.</dd></div><div class="dato"><dt>Gana</dt><dd>Cada servicio <b>escala y se despliega solo</b>. Equipos grandes trabajan sin pisarse. Una falla puede quedar aislada en un servicio.</dd></div><div class="dato no"><dt>Paga</dt><dd>Red, fallas parciales, datos repartidos, observabilidad y <b>mucha operación</b>. Garantizar una regla entre servicios (el cupo) es difícil.</dd></div><div class="dato"><dt>Encaja cuando</dt><dd>Varios equipos autónomos, partes con carga o ritmo de cambio muy distintos, y capacidad real de operar sistemas distribuidos.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>Con un equipo de 3, el costo de operar varios despliegues supera lo que se gana. Y repartir inscripciones y oferta en dos bases haría muy difícil <b>no sobrepasar el cupo</b>. Su desarrollo pertenece a la Maestría.</span></div>
+<footer class="pie"><span class="idea">Microservicios resuelve problemas de organización antes que de tecnología.</span><span class="num"><span class="sello">iSAQB · SEI</span>16 / 28</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 03</div>
+  <h1>Trade-offs y selección</h1>
+  <p class="lede">Ningún estilo gana en todo. Cómo comparar con criterios explícitos y elegir según el equipo, el dominio y la escala reales.</p>
+  <div class="temas"><span class="chip">Las dos leyes</span><span class="chip">Comparativa</span><span class="chip">Equipo · dominio · escala</span><span class="chip">Matriz de decisión</span><span class="chip">Tres escenarios</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>17 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Trade-offs</span></header>
+<div class="titular">
+  <div><h1>Las dos leyes de la arquitectura</h1><div class="exp">Richards y Ford · Fundamentals of Software Architecture (2020)</div></div>
+  <div class="chips"><span class="chip tipo">Ley</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:24px;align-content:start">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div class="panel" style="gap:14px">
+      <h3>Primera ley</h3>
+      <blockquote class="cita" style="font-size:calc(25px*var(--k))">«Todo en arquitectura de software es un trade-off.»<footer>Corolario: si crees que encontraste algo que no lo es, todavía no encontraste el trade-off.</footer></blockquote>
+      <p class="grande">Mejorar un atributo <b>cuesta otro</b>. Microservicios gana escalabilidad y paga simplicidad; hexagonal gana testabilidad y paga archivos.</p>
+    </div>
+    <div class="panel" style="gap:14px">
+      <h3>Segunda ley</h3>
+      <blockquote class="cita" style="font-size:calc(25px*var(--k))">«El porqué es más importante que el cómo.»<footer>Una decisión sin su justificación no se puede revisar ni defender.</footer></blockquote>
+      <p class="grande">Por eso la primera entrega de hoy es <b>una matriz con la justificación</b>, no código. En la Sesión 3 se vuelve un ADR.</p>
+    </div>
+  </div>
+  <div class="cupo"><span class="et">Traducido</span><span>No existe «la mejor arquitectura». Existe la <b>menos mala para estos drivers</b>, y el trabajo del arquitecto es hacer visible qué se gana, qué se paga y por qué vale la pena.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">Si no puedes decir qué pagas, todavía no entendiste la decisión.</span><span class="num"><span class="sello">iSAQB · SEI</span>18 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Trade-offs</span></header>
+<div class="titular">
+  <div><h1>Los cinco, lado a lado</h1><div class="exp">Valoración orientativa de 1 a 5, donde <b>más es mejor</b> · adaptada de Richards y Ford</div></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:20px;align-content:start">
+  <table class="tabla tabla-pts"><thead><tr><th>estilo</th><th>simplicidad</th><th>costo bajo</th><th>mantenibilidad</th><th>testabilidad</th><th>escalabilidad</th><th>despliegue independiente</th><th>tolerancia a fallos</th></tr></thead><tbody>
+    <tr><td>Monolito sin reglas</td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td></tr>
+    <tr><td>Capas</td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="3"></span></td><td><span class="pts" data-n="3"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td></tr>
+    <tr><td>Hexagonal</td><td><span class="pts" data-n="3"></span></td><td><span class="pts" data-n="4"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="2"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td></tr>
+    <tr><td>Event-driven</td><td><span class="pts" data-n="2"></span></td><td><span class="pts" data-n="3"></span></td><td><span class="pts" data-n="4"></span></td><td><span class="pts" data-n="2"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="3"></span></td><td><span class="pts" data-n="4"></span></td></tr>
+    <tr><td>Microservicios</td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="1"></span></td><td><span class="pts" data-n="4"></span></td><td><span class="pts" data-n="4"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="5"></span></td><td><span class="pts" data-n="4"></span></td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <div class="panel suave"><h3>Cómo leerla</h3><p class="grande">Ninguna fila está llena: lo que un estilo gana a la derecha lo paga a la izquierda. <b>Simplicidad y costo</b> van en contra de <b>escalabilidad y despliegue independiente</b>.</p></div>
+    <div class="panel alerta"><h3>Lo que la tabla no dice</h3><p class="grande">Cuánto <b>importa</b> cada columna. Eso depende del sistema: para un congreso de dos días, la escalabilidad casi no pesa. Los pesos los ponen los drivers.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Las notas describen el estilo; los pesos describen tu sistema.</span><span class="num"><span class="sello">iSAQB · SEI</span>19 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Criterios de selección</span></header>
+<div class="titular">
+  <div><h1>Elegir según el contexto real</h1><div class="exp">Tres preguntas antes de mirar cualquier estilo: <b>quién</b> lo construye, <b>qué</b> resuelve y <b>cuánto</b> debe aguantar</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:20px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+    <div class="tarjeta" style="gap:10px"><span class="c">01 · Equipo</span><span class="h">¿Quién lo construye y lo opera?</span>
+      <ul class="lista"><li>Cuántas personas y cuántos equipos en paralelo.</li><li>Experiencia operando sistemas distribuidos.</li><li>Quién atiende producción a las 3 a. m.</li></ul>
+      <span class="x"><b>Empuja:</b> equipo chico → monolito o capas. Muchos equipos autónomos → modular o microservicios.</span></div>
+    <div class="tarjeta" style="gap:10px"><span class="c">02 · Dominio</span><span class="h">¿Qué tan complejo es el negocio?</span>
+      <ul class="lista"><li>Reglas ricas o un CRUD con validaciones.</li><li>Cuánto cambian las reglas y cuántos sistemas externos hay.</li><li>Hechos que disparan varias reacciones.</li></ul>
+      <span class="x"><b>Empuja:</b> CRUD → capas. Reglas ricas y externos cambiantes → hexagonal. Muchas reacciones → eventos.</span></div>
+    <div class="tarjeta" style="gap:10px"><span class="c">03 · Escala</span><span class="h">¿Cuánta carga, y es pareja?</span>
+      <ul class="lista"><li>Usuarios simultáneos y picos (el día de inscripciones).</li><li>Partes con carga muy distinta entre sí.</li><li>Disponibilidad exigida y vida útil esperada.</li></ul>
+      <span class="x"><b>Empuja:</b> carga pareja → monolito replicado. Partes con cargas muy distintas → servicios o eventos.</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px">
+    <div class="panel"><h3>Y las restricciones</h3><p class="grande">Presupuesto, plazo, leyes, tecnología impuesta y sistemas que no se pueden cambiar. A veces <b>descartan</b> estilos antes de compararlos.</p></div>
+    <div class="panel suave"><h3>La trampa más común</h3><p class="grande">Elegir por <b>moda o currículum</b>: «microservicios porque se ve bien». La Ley de Conway avisa: con un solo equipo saldrá un solo sistema.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Equipo, dominio y escala deciden; la moda no vota.</span><span class="num"><span class="sello">iSAQB · SEI</span>20 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Criterios de selección</span></header>
+<div class="titular">
+  <div><h1>Del contexto al estilo</h1><div class="exp">Cinco sistemas reales y el estilo que razonablemente encaja con cada uno</div></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:20px;align-content:start">
+  <table class="tabla"><thead><tr><th>sistema</th><th>equipo</th><th>dominio</th><th>escala</th><th>estilo que encaja</th></tr></thead><tbody>
+    <tr><td>MVP de una startup</td><td>2 personas</td><td>incierto, cambia cada semana</td><td>pocos usuarios</td><td><span class="estado si">monolito</span> <span class="m">· validar rápido; KISS</span></td></tr>
+    <tr><td>Sistema interno de una universidad</td><td>3 a 5 personas</td><td>reglas que cambian cada gestión; un legado</td><td>picos en inscripciones</td><td><span class="estado si">capas → hexagonal</span> <span class="m">· Cupo</span></td></tr>
+    <tr><td>Core de un banco</td><td>varios equipos</td><td>reglas muy ricas; muchas integraciones</td><td>alta disponibilidad</td><td><span class="estado si">hexagonal</span> <span class="m">· proteger el núcleo</span></td></tr>
+    <tr><td>Tienda en línea</td><td>varios equipos</td><td>una compra dispara pago, stock, envío, correo</td><td>picos de campaña</td><td><span class="estado si">modular + eventos</span> <span class="m">· desacoplar reacciones</span></td></tr>
+    <tr><td>Plataforma de streaming global</td><td>cientos de equipos</td><td>decenas de capacidades independientes</td><td>millones simultáneos</td><td><span class="estado si">microservicios</span> <span class="m">· autonomía y escala</span></td></tr>
+  </tbody></table>
+  <div class="cupo"><span class="et">Patrón</span><span>De arriba hacia abajo crecen el equipo, la complejidad y la escala, y el estilo <b>acompaña ese crecimiento</b>. Saltar a la última fila con el equipo de la primera es pagar el costo sin recibir el beneficio.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">El estilo crece con el sistema; no se adelanta a él.</span><span class="num"><span class="sello">iSAQB · SEI</span>21 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Matriz de decisión</span></header>
+<div class="titular">
+  <div><h1>La matriz de decisión</h1><div class="exp">Escenario A · <b>Cupo en una regional de la UCB</b>: 3 personas, una carrera, picos el día de inscripciones, un legado intocable</div></div>
+  <div class="chips"><span class="chip tipo">Técnica</span><span class="chip origen">matriz de Pugh · 1981</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.55fr 1fr;gap:26px;align-content:start">
+  <table class="tabla"><thead><tr><th>criterio · peso</th><th>sin capas</th><th>capas</th><th>hexagonal</th><th>eventos</th><th>micro&shy;servicios</th></tr></thead><tbody>
+    <tr><td>Simplicidad para 3 personas <span class="m mono">×3</span></td><td>4</td><td>5</td><td>4</td><td>2</td><td>1</td></tr>
+    <tr><td>Mantenibilidad del reglamento <span class="m mono">×3</span></td><td>1</td><td>3</td><td>5</td><td>3</td><td>4</td></tr>
+    <tr><td>Testabilidad sin externos <span class="m mono">×2</span></td><td>1</td><td>3</td><td>5</td><td>3</td><td>4</td></tr>
+    <tr><td>Escalar el día de inscripciones <span class="m mono">×2</span></td><td>2</td><td>3</td><td>3</td><td>4</td><td>5</td></tr>
+    <tr><td>Costo de operación <span class="m mono">×2</span></td><td>5</td><td>5</td><td>5</td><td>3</td><td>1</td></tr>
+    <tr><td><b>Puntaje</b></td><td class="mono">31</td><td class="mono" style="color:var(--a);font-weight:500">46</td><td class="mono" style="color:var(--ok);font-weight:500">53 ✓</td><td class="mono">35</td><td class="mono">35</td></tr>
+  </tbody></table>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel"><h3>Cómo se arma</h3>
+      <ul class="lista num"><li>Los <b>criterios</b> salen de los drivers.</li><li>Cada criterio lleva un <b>peso</b> de 1 a 3: cuánto importa aquí.</li><li>Cada estilo, una <b>nota</b> de 1 a 5.</li><li>Puntaje = suma de <b>nota × peso</b>.</li></ul></div>
+    <div class="panel suave"><h3>Decisión</h3><p><b>Hoy, capas.</b> Objetivo: monolito modular con hexagonal en cada módulo (Sesiones 6 y 7). Microservicios no: el costo de operarlos supera lo que gana un equipo de 3.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">La matriz no decide sola: hace visibles los supuestos para discutirlos.</span><span class="num"><span class="sello">iSAQB · SEI</span>22 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Matriz de decisión</span></header>
+<div class="titular">
+  <div><h1>Mismo método, otro contexto, otro ganador</h1><div class="exp">Cambian los drivers, cambian los pesos, <b>cambia la decisión</b></div></div>
+  <div class="chips"><span class="chip tipo">Actividad · en grupo</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>Escenario B · las cuatro regionales con un solo Cupo</h3>
+      <table class="tabla"><thead><tr><th>criterio · peso</th><th>capas</th><th>modular</th><th>micro&shy;servicios</th></tr></thead><tbody>
+        <tr><td>Escalar a varias sedes <span class="m mono">×3</span></td><td>2</td><td>4</td><td>5</td></tr>
+        <tr><td>Equipos en paralelo <span class="m mono">×2</span></td><td>2</td><td>4</td><td>5</td></tr>
+        <tr><td>Consistencia del cupo <span class="m mono">×3</span></td><td>5</td><td>5</td><td>2</td></tr>
+        <tr><td>Costo de operación <span class="m mono">×2</span></td><td>5</td><td>4</td><td>2</td></tr>
+        <tr><td><b>Puntaje</b></td><td class="mono">35</td><td class="mono" style="color:var(--ok);font-weight:500">43 ✓</td><td class="mono">35</td></tr>
+      </tbody></table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h3>Escenario C · un congreso de dos días</h3>
+      <table class="tabla"><thead><tr><th>criterio · peso</th><th>sin capas</th><th>capas</th><th>micro</th></tr></thead><tbody>
+        <tr><td>Tiempo para tenerlo listo <span class="m mono">×3</span></td><td>5</td><td>4</td><td>1</td></tr>
+        <tr><td>Mantenibilidad a largo plazo <span class="m mono">×1</span></td><td>1</td><td>3</td><td>4</td></tr>
+        <tr><td>Costo de operación <span class="m mono">×2</span></td><td>5</td><td>5</td><td>1</td></tr>
+        <tr><td><b>Puntaje</b></td><td class="mono" style="color:var(--ok);font-weight:500">26 ✓</td><td class="mono">25</td><td class="mono">9</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="panel"><h3>Lo que muestran</h3><p class="grande">En B, la <b>consistencia del cupo</b> hunde a microservicios aunque escale mejor. En C, la mantenibilidad casi no pesa y gana el monolito sin capas: <b>KISS</b>.</p></div>
+    <div class="panel suave"><h3>Su turno</h3><p class="grande">En grupos: cambien las notas o los pesos con los que no estén de acuerdo, recalculen y <b>defiendan</b> el ganador. Se guarda en <code>docs/matriz-de-estilos.md</code>.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Lo que decide son los drivers, no la moda.</span><span class="num"><span class="sello">iSAQB · SEI</span>23 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 03 · Matriz de decisión</span></header>
+<div class="titular">
+  <div><h1>¿Por qué capas, si hexagonal sacó más puntos?</h1><div class="exp">Porque a hexagonal <b>no se llega de un salto</b>: se llega por etapas, con el contrato pasando en cada paso</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:24px;align-content:start">
+  <div class="flujo">
+    <div class="tarjeta gris"><span class="c">Inicio</span><span class="h">Dos estilos mezclados</span><span class="x">Controladores que leen archivos y llaman por HTTP.</span></div>
+    <span class="sig">→</span>
+    <div class="tarjeta"><span class="c">Sesión 2 · hoy</span><span class="h">Capas</span><span>Separar responsabilidades: cada cosa en su capa.</span></div>
+    <span class="sig">→</span>
+    <div class="tarjeta"><span class="c">Sesión 6</span><span class="h">Hexagonal</span><span>Invertir la dependencia: el negocio define puertos.</span></div>
+    <span class="sig">→</span>
+    <div class="tarjeta"><span class="c">Sesión 7</span><span class="h">Monolito modular</span><span>Módulos con fronteras y una capa anticorrupción.</span></div>
+    <span class="sig">→</span>
+    <div class="tarjeta"><span class="c">Sesión 8</span><span class="h">+ Eventos</span><span>Si el correo falla, la inscripción no falla.</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="panel"><h3>Por qué por etapas</h3><ul class="lista"><li>No se invierte una dependencia que todavía no está separada.</li><li>Cada etapa deja el sistema <b>funcionando</b> y medido.</li><li>Si una etapa sale mal, se sabe cuál fue.</li></ul></div>
+    <div class="panel suave"><h3>Arquitectura evolutiva</h3><p class="grande">La matriz da el <b>destino</b>; el camino se recorre con pasos pequeños y verificables. Microservicios no está en el camino: ningún driver de Cupo lo pide.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Decidir el destino no obliga a llegar en un solo paso.</span><span class="num"><span class="sello">iSAQB · SEI</span>24 / 28</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 04</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 04</div>
+  <h1>Cupo por capas y cierre</h1>
+  <p class="lede">La decisión aplicada en 7 pasos, verificada con pruebas que hacen cumplir las capas, y lo que todavía queda pendiente.</p>
+  <div class="temas"><span class="chip">Los 7 pasos</span><span class="chip">Capas que se cumplen solas</span><span class="chip">Resultados</span><span class="chip">Próxima sesión</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>25 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 04 · Cupo por capas</span></header>
+<div class="titular">
+  <div><h1>Los 7 pasos</h1><div class="exp">Primero se decide, después se construye <b>de abajo hacia arriba</b>, y al final las reglas se vuelven pruebas</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div class="pasos" style="grid-template-columns:repeat(7,1fr)">
+    <div class="paso"><span class="n">Paso 1</span><span class="h">Decidir</span><span>La matriz en <code>docs/</code>, antes de tocar código.</span></div>
+    <div class="paso"><span class="n">Paso 2</span><span class="h">Datos</span><span>4 repositorios y el cliente del sistema académico. Nadie los usa aún.</span></div>
+    <div class="paso"><span class="n">Paso 3</span><span class="h">Oferta</span><span>El cálculo de cupos se muda a <code>OfertaService</code>.</span></div>
+    <div class="paso"><span class="n">Paso 4</span><span class="h">Kardex</span><span>«Qué significa» el CSV, separado de «cómo se trae».</span></div>
+    <div class="paso"><span class="n">Paso 5</span><span class="h">Reportes</span><span>El mismo patrón, ahora sin ayuda.</span></div>
+    <div class="paso"><span class="n">Paso 6</span><span class="h">Coherencia</span><span>Inscripciones, pagos y login también usan repositorios.</span></div>
+    <div class="paso"><span class="n">Paso 7</span><span class="h">Reglas</span><span>Pruebas que fallan si alguien se salta una capa.</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:24px">
+    <div class="panel alerta"><h3>Medir antes de reorganizar</h3><p>Cuatro pruebas «Problema · S2» pasan <b>porque los defectos existen</b>: tres controladores leen archivos sin servicio y el del kardex llama por HTTP. Al corregir cada uno, su prueba falla: esa es la señal de avance.</p></div>
+    <div class="panel"><h3>Reglas del taller</h3><ul class="lista"><li><b>Refactorizar</b> es cambiar la estructura sin cambiar el comportamiento: el cálculo se muda tal cual.</li><li>Un paso que no rompe nada es un paso seguro (paso 2).</li><li>Un estilo aplicado a medias <b>no es un estilo</b> (paso 6).</li></ul></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El contrato pasa 30 de 30 en cada uno de los 7 pasos.</span><span class="num"><span class="sello">iSAQB · SEI</span>26 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 04 · Resultados</span></header>
+<div class="titular">
+  <div><h1>Capas que se cumplen solas</h1><div class="exp">Una regla que solo está en la cabeza del equipo <b>se rompe el primer viernes apurado</b></div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1.15fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel"><h3>test/soluciones/s02-capas.spec.ts</h3>
+      <ul class="lista num"><li>Los controladores solo reciben y delegan: <b>no leen archivos ni llaman por HTTP</b>.</li><li>Solo la capa de datos toca los archivos JSON y los sistemas externos.</li><li>Cada capa depende solo de la de abajo: presentación → negocio → datos.</li><li>La elección de estilo quedó escrita: matriz de 3 escenarios en <code>docs/</code>.</li></ul></div>
+    <div class="cupo"><span class="et">Cómo</span><span>La prueba sabe la capa por el <b>sufijo</b>: <code>.controller</code>, <code>.service</code>, <code>.repositorio</code> o <code>.client</code>. Una convención de nombres es arquitectura cuando una prueba la hace cumplir.</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <table class="tabla"><thead><tr><th>medida</th><th>inicio</th><th>solución</th></tr></thead><tbody>
+      <tr><td>Controladores que leen archivos o llaman por HTTP</td><td class="mono" style="color:var(--bad)">4 de 5</td><td class="mono" style="color:var(--ok);font-weight:500">0 de 5</td></tr>
+      <tr><td>Archivos que tocan <code>leerJson</code> fuera de utils</td><td class="mono" style="color:var(--bad)">6</td><td class="mono" style="color:var(--ok);font-weight:500">4 · repositorios</td></tr>
+      <tr><td>Reglas de capas verificadas por pruebas</td><td class="mono" style="color:var(--bad)">0</td><td class="mono" style="color:var(--ok);font-weight:500">3</td></tr>
+      <tr><td>Problemas pendientes</td><td class="mono" style="color:var(--bad)">27</td><td class="mono" style="color:var(--ok);font-weight:500">23</td></tr>
+      <tr><td>Pruebas de soluciones</td><td class="mono">10</td><td class="mono" style="color:var(--ok);font-weight:500">14</td></tr>
+    </tbody></table>
+    <div class="panel alerta"><h3>Lo que pagamos</h3><p>De 22 a 31 archivos en <code>src/</code>, y <code>InscripcionesService</code> recibe <b>7 dependencias</b>: el servicio sabe demasiado. Lo ordenan el dominio (Sesión 5) y los módulos (Sesión 7). El negocio aún depende de clases concretas: Sesión 6.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Toda mejora tiene un costo, y lo que sigue pendiente tiene sesión dueña.</span><span class="num"><span class="sello">iSAQB · SEI</span>27 / 28</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 2 · Estilos y patrones</span><span>Parte 04 · Cierre</span></header>
+<div class="titular">
+  <div><h1>Cierre</h1><div class="exp">Lo que nos llevamos y lo que viene</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-content:start">
+  <div class="panel">
+    <h3>Ideas clave</h3>
+    <ul class="lista num">
+      <li>Un <b>estilo</b> da la forma de todo el sistema; un <b>patrón</b> resuelve un problema dentro de ella.</li>
+      <li><b>MVC</b> ordena la interfaz, pero no dice dónde va el negocio.</li>
+      <li>Cinco estilos, cinco trade-offs: <b>ninguno gana en todo</b>.</li>
+      <li>Se elige por <b>equipo, dominio y escala</b>, con una matriz y por escrito.</li>
+      <li>El destino se alcanza <b>por etapas</b>: hoy capas, después hexagonal.</li>
+      <li>Una regla de arquitectura se cumple cuando <b>una prueba la vigila</b>.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>Próxima sesión</h3>
+    <p class="grande"><b>¿Por qué Cupo es así? Que quede escrito</b></p>
+    <p>La matriz de hoy no dice qué se descartó ni qué se paga. Aprendemos a registrar decisiones con <b>ADR</b>, a ver atributos de calidad en conflicto y a evaluar Cupo con un <b>ATAM ligero</b>.</p>
+    <p style="color:var(--muted)">Lectura: Nygard (2011) · Richards y Ford, cap. 19.</p>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Elegir un estilo es elegir qué será fácil de cambiar.</span><span class="num"><span class="sello">iSAQB · SEI</span>28 / 28</span></footer>
+</section>
+</main>
+<script>
+// Puntos de valoración: <span class="pts" data-n="3"> → ●●●○○
+[].forEach.call(document.querySelectorAll('.pts'),function(e){var n=+e.getAttribute('data-n');e.innerHTML='●'.repeat(n)+'<i>'+'○'.repeat(5-n)+'</i>'});
+</script>
+
+<div class="progreso" id="progreso"></div>
+<nav class="ctrl" aria-label="Controles">
+  <button type="button" data-ir="-1" title="Anterior (←)">←</button>
+  <button type="button" data-ir="1" title="Siguiente (→)">→</button>
+  <button type="button" id="tema" title="Tema claro u oscuro (T)">tema</button>
+  <button type="button" id="pantalla" title="Pantalla completa (F)">⛶</button>
+</nav>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0, raiz=document.documentElement;
+  function guardar(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function leer(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  var t=leer('diapositivas-tema'); if(t) raiz.setAttribute('data-theme',t);
+  function escalar(){
+    var s=Math.min(innerWidth/1600, innerHeight/900);
+    raiz.style.setProperty('--s', s);
+  }
+  function mostrar(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.classList.toggle('activa',k===i)});
+    document.getElementById('progreso').style.width=((i+1)/slides.length*100)+'%';
+    if(location.hash!=='#'+(i+1)) history.replaceState(null,'','#'+(i+1));
+  }
+  function tema(){
+    var oscuro=raiz.getAttribute('data-theme')==='dark' ||
+      (!raiz.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var nuevo=oscuro?'light':'dark'; raiz.setAttribute('data-theme',nuevo); guardar('diapositivas-tema',nuevo);
+  }
+  function pantalla(){
+    if(document.fullscreenElement) document.exitFullscreen(); else if(raiz.requestFullscreen) raiz.requestFullscreen();
+  }
+  addEventListener('resize',escalar);
+  addEventListener('keydown',function(e){
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    var k=e.key;
+    if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();mostrar(i+1)}
+    else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'||k==='Backspace'){e.preventDefault();mostrar(i-1)}
+    else if(k==='Home') mostrar(0);
+    else if(k==='End') mostrar(slides.length-1);
+    else if(k==='t'||k==='T') tema();
+    else if(k==='f'||k==='F') pantalla();
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){
+    if(x0===null) return; var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>40) mostrar(dx<0?i+1:i-1);
+  });
+  [].forEach.call(document.querySelectorAll('[data-ir]'),function(b){
+    b.addEventListener('click',function(){mostrar(i+Number(b.getAttribute('data-ir')))});
+  });
+  document.getElementById('tema').addEventListener('click',tema);
+  document.getElementById('pantalla').addEventListener('click',pantalla);
+  // Cada diapositiva empieza con el texto al 122 % y lo achica de a poco hasta que cabe en 900 px (mínimo 80 %).
+  // En las diapositivas libres también tiene que caber el lienzo, para no montarse sobre el pie.
+  function ajustar(){
+    slides.forEach(function(s){
+      s.style.display="flex"; var k=1.22;
+      s.style.setProperty('--k',k);
+      var l=s.querySelector('.lienzo');
+      while((s.scrollHeight>s.clientHeight+1 || (l && l.scrollHeight>l.clientHeight+1)) && k>0.8){k=Math.round((k-0.02)*100)/100; s.style.setProperty('--k',k)}
+      s.setAttribute('data-k',k); s.style.display='';
+    });
+  }
+  var oculto=null;
+  addEventListener('mousemove',function(){
+    document.body.classList.add('mueve'); clearTimeout(oculto);
+    oculto=setTimeout(function(){document.body.classList.remove('mueve')},1800);
+  });
+  escalar();
+  ajustar();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(ajustar);
+  mostrar((parseInt(location.hash.slice(1),10)||1)-1);
+})();
+</script>
+</body>
+</html>
