@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sesión 4 · Deuda técnica y métricas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Diapositivas de la sesión. Lienzo fijo de 1600×900 que se escala a la ventana; mismos tokens que guias/assets/guia.css. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --sunk:#E8ECF0; --ink:#14202B; --muted:#56636F; --line:#D5DCE3;
+  --a:#0E6A86; --a-soft:#DCEEF4; --b:#A84D1A; --b-soft:#F6E7DD;
+  --ok:#2A7A4B; --ok-soft:#DFF1E6; --warn:#9A6A12; --warn-soft:#F7EDD6; --bad:#BC322B; --bad-soft:#F8E0DE;
+  --stage:#DDE3E9;
+  --f-body:sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--f-body);font-weight:300;overflow:hidden}
+b,strong{font-weight:500}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--sunk);padding:.08em .32em;border-radius:4px}
+.mono{font-family:var(--f-mono)}
+
+.deck{position:fixed;inset:0}
+.slide{position:absolute;left:50%;top:50%;width:1600px;height:900px;margin:-450px 0 0 -800px;
+  transform:scale(var(--s,1));background:var(--bg);display:none;flex-direction:column;
+  padding:44px 72px 34px;gap:22px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.18)}
+.slide.activa{display:flex}
+
+/* barra superior y pie */
+.barra{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:15px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.barra .marca{display:flex;gap:14px;align-items:center}
+.barra .punto{width:10px;height:10px;border-radius:50%;background:var(--a)}
+.pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:30px;
+  border-top:1px solid var(--line);padding-top:16px;font-size:20px;color:var(--muted)}
+.pie .idea{color:var(--ink);font-weight:400}
+.pie .idea::before{content:"→ ";color:var(--a);font-family:var(--f-mono)}
+.pie .num{font-family:var(--f-mono);font-size:15px;white-space:nowrap}
+.pie .sello{color:var(--a);letter-spacing:.08em;margin-right:18px;padding-right:18px;border-right:1px solid var(--line)}
+
+/* portada */
+.portada{justify-content:flex-start}
+.portada .cuerpo{flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:64px;align-items:center}
+.portada h1{font-size:88px;line-height:1.02;font-weight:700;margin:14px 0 26px;letter-spacing:-.015em;text-wrap:balance}
+.portada .lede{font-size:28px;line-height:1.45;color:var(--muted);max-width:30ch}
+.portada .ses{font-family:var(--f-mono);font-size:20px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.agenda{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 34px;display:flex;flex-direction:column;gap:6px}
+.agenda h2{font-family:var(--f-mono);font-size:15px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.agenda .item{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.agenda .item:first-of-type{border-top:0}
+.agenda .n{font-family:var(--f-mono);font-size:22px;color:var(--a)}
+.agenda .t{font-size:27px;font-weight:600;line-height:1.2}
+.agenda .s{display:block;font-size:18px;font-weight:300;color:var(--muted);margin-top:2px}
+.ficha{display:flex;gap:0;margin-top:34px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;max-width:820px}
+.ficha div{flex:1;padding:14px 18px;border-left:1px solid var(--line)}
+.ficha div:first-child{border-left:0}
+.ficha dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ficha dd{margin:4px 0 0;font-size:20px;font-weight:400}
+
+/* concepto: los tamaños de texto se multiplican por --k, que el script baja si el contenido no cabe */
+.slide{--k:1}
+.titular{display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.titular h1{font-size:calc(68px*var(--k));font-weight:700;line-height:1;margin:0;letter-spacing:-.015em}
+.titular .exp{font-size:calc(26px*var(--k));color:var(--muted);margin-top:10px}
+.titular .exp b{color:var(--ink)}
+.chips{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+.chip{font-family:var(--f-mono);font-size:15px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.chip.tipo{background:var(--a-soft);color:var(--a);border-color:transparent;text-transform:uppercase;letter-spacing:.08em}
+.chip.origen{font-size:17px}
+
+.cuerpo{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:start}
+.cuerpo.solo{grid-template-columns:1fr}
+.col{display:flex;flex-direction:column;gap:16px}
+.defin{margin:0;font-size:calc(28px*var(--k));line-height:1.4;font-weight:300}
+.defin b{font-weight:500}
+.cita{margin:0;border-left:4px solid var(--a);padding:2px 0 2px 22px;font-size:calc(21px*var(--k));line-height:1.45;font-style:italic}
+.cita footer{font-style:normal;font-family:var(--f-mono);font-size:calc(14px*var(--k));color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+.piezas{display:grid;gap:8px}
+.pieza{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:calc(18.5px*var(--k));line-height:1.32}
+.pieza .k{font-family:var(--f-mono);font-size:1.25em;font-weight:500;color:var(--a);margin-right:8px}
+.pieza .h{font-weight:500}
+.pieza .x{display:block;color:var(--muted);margin-top:2px}
+
+.datos{display:grid;gap:12px;margin:0}
+.dato{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 16px;font-size:calc(18.5px*var(--k));line-height:1.42}
+.dato dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:6px}
+.dato dd{margin:0}
+.dato.no{border-top-color:var(--b)}
+.dato.no dt{color:var(--b)}
+
+.cupo{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;background:var(--a-soft);border-radius:12px;padding:14px 22px;font-size:calc(19.5px*var(--k));line-height:1.45}
+.cupo .et{font-family:var(--f-mono);font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--a);padding-top:5px;white-space:nowrap}
+
+/* diapositivas libres (diapositivas-cupo.html): diagramas SVG que heredan los tokens, paneles, tablas y código */
+.lienzo{flex:1;min-height:0;display:grid;gap:28px}
+.lienzo svg{width:100%;height:100%;display:block;overflow:visible}
+.dg text{font-family:var(--f-body);fill:var(--ink);font-size:19px;font-weight:400}
+.dg .tt{font-size:22px;font-weight:600}
+.dg .tg{font-size:30px;font-weight:700}
+.dg .tm{fill:var(--muted);font-size:15.5px;font-weight:300}
+.dg .tc{font-family:var(--f-mono);font-size:14px;fill:var(--muted)}
+.dg .tc.a{fill:var(--a)}
+.dg .tc.b{fill:var(--b)}
+.dg .caja{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.dg .acento{fill:var(--a-soft);stroke:var(--a);stroke-width:2}
+.dg .ext{fill:var(--sunk);stroke:var(--muted);stroke-width:1.3;stroke-dasharray:6 5}
+.dg .naranja{fill:var(--b-soft);stroke:var(--b);stroke-width:1.5}
+.dg .ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}
+.dg .linea{stroke:var(--muted);stroke-width:1.6;fill:none}
+.dg .flecha{stroke:var(--muted);stroke-width:1.8;fill:none}
+.dg .flecha.a{stroke:var(--a)}
+.dg .flecha.b{stroke:var(--b)}
+.dg .punta{fill:var(--muted)} .dg .punta.a{fill:var(--a)} .dg .punta.b{fill:var(--b)}
+.dg .barra-dato{fill:var(--a)}
+.dg .barra-dato:hover{opacity:.8}
+.dg .eje{stroke:var(--line);stroke-width:1.5}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:10px;font-size:calc(17px*var(--k));line-height:1.42}
+.panel h3,.lienzo h3{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--a);margin:0}
+.panel p{margin:0}
+.filas{display:flex;flex-direction:column}
+.fila{display:grid;grid-template-columns:var(--cols,1fr 2fr);gap:14px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.fila:first-child{border-top:0}
+.fila .m{color:var(--muted)}
+.fila>code{justify-self:start}
+.pasos{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.paso{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:calc(15px*var(--k));line-height:1.38}
+.paso .n{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.paso .h{font-size:calc(19px*var(--k));font-weight:600}
+.paso code{font-size:.78em}
+.reglas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.regla{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:calc(16.5px*var(--k));line-height:1.38;display:flex;flex-direction:column;gap:4px}
+.regla .h{font-weight:600;font-size:calc(19px*var(--k))}
+.regla .c{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.cod{background:#14202B;color:#E4EBF1;border-radius:12px;padding:18px 22px;font-family:var(--f-mono);font-size:calc(15px*var(--k));line-height:1.6;margin:0;white-space:pre}
+.cod .c{color:#7F8E9B}
+.cod .k{color:#7CC4DD}
+.metodo{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:6px;background:var(--a-soft);color:var(--a)}
+.metodo.post{background:var(--b-soft);color:var(--b)}
+.metodo.del{background:var(--bad-soft);color:var(--bad)}
+
+/* presentaciones de clase (claseNN.py): separadores de parte, tablas, listas y tarjetas */
+.separador .cuerpo-sep{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:1240px}
+.separador .parte{font-family:var(--f-mono);font-size:22px;color:var(--a);letter-spacing:.1em;text-transform:uppercase}
+.separador h1{font-size:104px;line-height:1;font-weight:700;margin:0;letter-spacing:-.02em}
+.separador .lede{font-size:30px;line-height:1.45;color:var(--muted);margin:0;max-width:44ch}
+.separador .temas{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.separador .chip{font-size:17px;padding:8px 16px}
+.tabla{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;font-size:calc(17px*var(--k));line-height:1.4}
+.tabla th{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:11px 16px;background:var(--sunk)}
+.tabla td{padding:calc(10px*var(--k)) 16px;border-top:1px solid var(--line);vertical-align:top}
+.tabla td:first-child{font-weight:500}
+.tabla .k{font-family:var(--f-mono);font-size:1.2em;color:var(--a)}
+.tabla .m{color:var(--muted)}
+.estado{font-family:var(--f-mono);font-size:calc(14px*var(--k));padding:3px 10px;border-radius:999px;white-space:nowrap;display:inline-block}
+.estado.si{background:var(--ok-soft);color:var(--ok)}
+.estado.no{background:var(--bad-soft);color:var(--bad)}
+.estado.pend{background:var(--warn-soft);color:var(--warn)}
+.lista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:calc(10px*var(--k))}
+.lista li{padding-left:30px;position:relative}
+.lista li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-family:var(--f-mono);font-weight:500}
+.lista.no li::before{content:"✕";color:var(--bad)}
+.lista.num{counter-reset:n}
+.lista.num li{padding-left:40px}
+.lista.num li::before{counter-increment:n;content:counter(n,decimal-leading-zero);color:var(--a)}
+.panel.suave{background:var(--a-soft);border-color:transparent}
+.panel.alerta{background:var(--b-soft);border-color:transparent}
+.panel.alerta h3{color:var(--b)}
+.panel .ticket{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.06em}
+.panel .cita{font-size:calc(19px*var(--k))}
+.panel .grande{font-size:calc(22px*var(--k));line-height:1.4}
+.tarjeta{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(16px*var(--k));line-height:1.4}
+.tarjeta .h{font-size:calc(21px*var(--k));font-weight:600}
+.tarjeta .c{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.06em;text-transform:uppercase}
+.tarjeta .x{color:var(--muted)}
+.tarjeta.b{border-top-color:var(--b)} .tarjeta.b .c{color:var(--b)}
+.tarjeta.gris{border-top-color:var(--line)} .tarjeta.gris .c{color:var(--muted)}
+.flujo{display:flex;align-items:stretch;gap:0}
+.flujo .tarjeta{flex:1}
+.flujo .sig{display:flex;align-items:center;padding:0 10px;color:var(--a);font-family:var(--f-mono);font-size:24px}
+
+/* controles en pantalla */
+/* los controles aparecen al mover el mouse y se esconden solos, para no tapar la diapositiva */
+.ctrl{position:fixed;right:14px;bottom:12px;display:flex;gap:6px;opacity:0;transition:opacity .3s;z-index:5}
+.ctrl:hover,.ctrl:focus-within,body.mueve .ctrl{opacity:1}
+.ctrl button{font-family:var(--f-mono);font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+.progreso{position:fixed;left:0;bottom:0;height:3px;background:var(--a);transition:width .25s;z-index:4}
+
+@media print{
+  @page{size:1600px 900px;margin:0}
+  body{overflow:visible;background:var(--bg)}
+  .deck{position:static}
+  .slide{position:relative;left:auto;top:auto;margin:0;transform:none;display:flex;box-shadow:none;break-after:page}
+  .ctrl,.progreso{display:none}
+}
+
+/* sesión 2: puntos de valoración en la comparativa de estilos */
+.pts{font-family:var(--f-mono);color:var(--a);letter-spacing:2px;white-space:nowrap;font-size:1.05em}
+.pts i{font-style:normal;color:var(--line)}
+.tabla-pts td{white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Acuerdos de clase</span></header>
+<div class="titular">
+  <div><h1>Nuestro ritual de inicio</h1><div class="exp">Tres acuerdos que repetiremos <b>al comenzar cada sesión</b>, para que todo el grupo arranque al mismo tiempo y con la misma información.</div></div>
+  <div class="chips"><span class="chip tipo">Cada clase</span></div>
+</div>
+<div class="lienzo" style="grid-template-rows:1fr auto;gap:22px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">01 · Inicio puntual</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">7:10</span>
+      <span class="h" style="font-size:28px">Comenzamos a las 7:10 en punto</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Los primeros minutos son de tolerancia para que todos los compañeros lleguen; a las 7:10 damos inicio a la clase.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">02 · Repositorio y LMS</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">LMS</span>
+      <span class="h" style="font-size:28px">Revisión del repositorio y el LMS</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Revisamos juntos el repositorio del curso y el LMS: actividades, lecturas y entregas de la sesión, para que todos lleguen preparados.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">03 · Asistencia</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">✓</span>
+      <span class="h" style="font-size:28px">Llamar lista</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Cerramos el inicio llamando lista, conforme a las disposiciones de la administración académica.</span>
+    </div>
+  </div>
+  <div class="panel suave"><p class="grande">Un mismo inicio en cada sesión nos permite <b>aprovechar mejor el tiempo</b> y asegura que nadie se pierda lo importante.</p></div>
+</div>
+<footer class="pie"><span class="idea">Puntualidad, repositorio y LMS, asistencia: así empieza cada clase.</span><span class="num"><span class="sello">iSAQB · SEI</span>1 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Repaso</span></header>
+<div class="titular">
+  <div><h1>Dónde quedamos</h1><div class="exp">La Sesión 3 escribió <b>por qué</b> Cupo es así. Hoy medimos <b>cuánto cuesta</b> que sea así.</div></div>
+  <div class="chips"><span class="chip tipo">Sesión 3</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr) 1fr;gap:16px">
+    <div class="tarjeta"><span class="c">ADR</span><span class="h">Decisiones con su porqué</span><span>Contexto, opciones, decisión y consecuencias, en <code>docs/adr/</code>.</span></div>
+    <div class="tarjeta"><span class="c">Conflicto</span><span class="h">Consistencia vs. rendimiento</span><span>Reservar el cupo de forma atómica antes de cobrar (ADR-0003).</span></div>
+    <div class="tarjeta"><span class="c">ATAM ligero</span><span class="h">Riesgos con dueño</span><span>R1 a R4, cada uno con su prueba y su sesión.</span></div>
+    <div class="panel"><h3>La evidencia</h3>
+      <div class="filas" style="--cols:1fr auto">
+        <div class="fila"><span>Pruebas</span><b class="mono">67 → 75</b></div>
+        <div class="fila"><span>Problemas</span><b class="mono">23 → 22</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel alerta">
+    <h3>Lo que se siente pero nadie midió</h3>
+    <div class="filas" style="--cols:340px 1fr">
+      <div class="fila"><code>app.module.ts</code><span>Un comentario dice «ojo: no mover este import». <b>¿Por qué?</b></span></div>
+      <div class="fila"><code>utils.ts</code><span>Mezcla archivos JSON, horas, moneda, ids y fechas. Lo importan <b>9 archivos</b>.</span></div>
+      <div class="fila"><code>'2027-1'</code><span>La gestión está escrita en el código <b>y</b> en <code>oferta.json</code>.</span></div>
+    </div>
+    <p class="grande">Nadie sabe <b>cuánta deuda hay</b> ni cuál pagar primero.</p>
+  </div>
+  <div class="panel suave"><p class="grande">Por eso, antes de entender qué es la deuda técnica, <b>tenemos que revisar cómo funciona Cupo</b>: no podemos correr sin antes gatear.</p></div>
+</div></div>
+<footer class="pie"><span class="idea">Lo que no se mide no se puede priorizar.</span><span class="num"><span class="sello">iSAQB · SEI</span>2 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Para empezar</span></header>
+<div class="titular">
+  <div><h1>Cada sprint TokTik entrega menos, con el mismo equipo</h1><div class="exp">Mismo equipo, mismas horas. <b>¿Dónde se fue el tiempo?</b></div></div>
+  <div class="chips"><span class="chip tipo">Un experimento mental</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.1fr 1fr;gap:30px;min-height:0">
+  <svg class="dg" viewBox="0 0 760 420" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Funcionalidades entregadas por sprint: 10, 8, 7, 5, 4, 3">
+    <text x="0" y="18" class="tc a">FUNCIONALIDADES ENTREGADAS POR SPRINT · ILUSTRATIVO</text>
+    <path d="M40,370 L760,370" class="eje"/>
+    <rect x="70" y="70" width="80" height="300" rx="6" class="barra-dato"/><text x="110" y="58" text-anchor="middle" class="tt">10</text><text x="110" y="398" text-anchor="middle" class="tc">S1</text>
+    <rect x="185" y="130" width="80" height="240" rx="6" class="barra-dato"/><text x="225" y="118" text-anchor="middle" class="tt">8</text><text x="225" y="398" text-anchor="middle" class="tc">S2</text>
+    <rect x="300" y="160" width="80" height="210" rx="6" class="barra-dato"/><text x="340" y="148" text-anchor="middle" class="tt">7</text><text x="340" y="398" text-anchor="middle" class="tc">S3</text>
+    <rect x="415" y="220" width="80" height="150" rx="6" class="barra-dato"/><text x="455" y="208" text-anchor="middle" class="tt">5</text><text x="455" y="398" text-anchor="middle" class="tc">S4</text>
+    <rect x="530" y="250" width="80" height="120" rx="6" class="barra-dato"/><text x="570" y="238" text-anchor="middle" class="tt">4</text><text x="570" y="398" text-anchor="middle" class="tc">S5</text>
+    <rect x="645" y="280" width="80" height="90" rx="6" class="barra-dato"/><text x="685" y="268" text-anchor="middle" class="tt">3</text><text x="685" y="398" text-anchor="middle" class="tc">S6</text>
+  </svg>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel"><h3>A dónde se fue el tiempo</h3><ul class="lista no"><li>Entender código que nadie se atreve a tocar.</li><li>Arreglar lo que un cambio rompió en otro lado.</li><li>Cambiar el mismo dato en tres lugares.</li><li>Esperar a que «el que sabe» revise.</li></ul></div>
+    <div class="panel suave"><p class="grande">Cada atajo de los primeros sprints <b>cobra intereses</b> en cada cambio posterior. Eso tiene nombre: <b>deuda técnica</b>.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">La deuda no se ve en el código; se ve en lo que tarda cada cambio.</span><span class="num"><span class="sello">iSAQB · SEI</span>3 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Para empezar</span></header>
+<div class="titular">
+  <div><h1>¿Por qué pasa esto?</h1><div class="exp">La capacidad del equipo <b>no cambió</b>; cambió <b>en qué se gasta</b>.</div></div>
+  <div class="chips"><span class="chip tipo">La causa</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.1fr 1fr;gap:30px;min-height:0">
+  <svg class="dg" viewBox="0 0 760 420" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Capacidad constante de 10 por sprint, repartida entre funcionalidades e intereses: S1 10 y 0, S2 8 y 2, S3 7 y 3, S4 5 y 5, S5 4 y 6, S6 3 y 7">
+    <text x="0" y="18" class="tc a">MISMA CAPACIDAD, OTRO DESTINO · ILUSTRATIVO</text>
+    <rect x="0" y="34" width="16" height="16" rx="3" class="barra-dato"/><text x="24" y="48" class="tm">Funcionalidades nuevas</text>
+    <rect x="220" y="34" width="16" height="16" rx="3" class="naranja"/><text x="244" y="48" class="tm">Intereses: tiempo pagando la deuda</text>
+    <path d="M40,70 L760,70" class="eje" style="stroke-dasharray:6 5"/>
+    <text x="760" y="62" text-anchor="end" class="tc">CAPACIDAD DEL EQUIPO = 10</text>
+    <path d="M40,370 L760,370" class="eje"/>
+    <rect x="70" y="70" width="80" height="300" rx="6" class="barra-dato"/><text x="110" y="228" text-anchor="middle" class="tt" style="fill:var(--surface)">10</text><text x="110" y="398" text-anchor="middle" class="tc">S1</text>
+    <rect x="185" y="70" width="80" height="60" rx="6" class="naranja"/><text x="225" y="107" text-anchor="middle" class="tt" style="fill:var(--b)">2</text>
+    <rect x="185" y="130" width="80" height="240" rx="6" class="barra-dato"/><text x="225" y="258" text-anchor="middle" class="tt" style="fill:var(--surface)">8</text><text x="225" y="398" text-anchor="middle" class="tc">S2</text>
+    <rect x="300" y="70" width="80" height="90" rx="6" class="naranja"/><text x="340" y="122" text-anchor="middle" class="tt" style="fill:var(--b)">3</text>
+    <rect x="300" y="160" width="80" height="210" rx="6" class="barra-dato"/><text x="340" y="273" text-anchor="middle" class="tt" style="fill:var(--surface)">7</text><text x="340" y="398" text-anchor="middle" class="tc">S3</text>
+    <rect x="415" y="70" width="80" height="150" rx="6" class="naranja"/><text x="455" y="152" text-anchor="middle" class="tt" style="fill:var(--b)">5</text>
+    <rect x="415" y="220" width="80" height="150" rx="6" class="barra-dato"/><text x="455" y="303" text-anchor="middle" class="tt" style="fill:var(--surface)">5</text><text x="455" y="398" text-anchor="middle" class="tc">S4</text>
+    <rect x="530" y="70" width="80" height="180" rx="6" class="naranja"/><text x="570" y="167" text-anchor="middle" class="tt" style="fill:var(--b)">6</text>
+    <rect x="530" y="250" width="80" height="120" rx="6" class="barra-dato"/><text x="570" y="318" text-anchor="middle" class="tt" style="fill:var(--surface)">4</text><text x="570" y="398" text-anchor="middle" class="tc">S5</text>
+    <rect x="645" y="70" width="80" height="210" rx="6" class="naranja"/><text x="685" y="182" text-anchor="middle" class="tt" style="fill:var(--b)">7</text>
+    <rect x="645" y="280" width="80" height="90" rx="6" class="barra-dato"/><text x="685" y="333" text-anchor="middle" class="tt" style="fill:var(--surface)">3</text><text x="685" y="398" text-anchor="middle" class="tc">S6</text>
+  </svg>
+  <div style="display:flex;flex-direction:column;gap:14px;min-height:0">
+    <div style="flex:1;min-height:0">
+      <svg class="dg" viewBox="0 0 740 390" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Círculo vicioso: presión por entregar, se toma un atajo, el código se acopla, cambiar cuesta más, y vuelve la presión">
+        <defs><marker id="pq-punta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="punta b"/></marker></defs>
+        <rect x="230" y="8" width="280" height="78" rx="10" class="caja"/>
+        <text x="370" y="42" text-anchor="middle" class="tt">Presión por entregar</text><text x="370" y="68" text-anchor="middle" class="tm">la fecha no se mueve</text>
+        <rect x="500" y="156" width="240" height="78" rx="10" class="naranja"/>
+        <text x="620" y="190" text-anchor="middle" class="tt">Se toma un atajo</text><text x="620" y="216" text-anchor="middle" class="tm">copiar o saltar pruebas</text>
+        <rect x="230" y="304" width="280" height="78" rx="10" class="caja"/>
+        <text x="370" y="338" text-anchor="middle" class="tt">El código se acopla</text><text x="370" y="364" text-anchor="middle" class="tm">un cambio toca más archivos</text>
+        <rect x="0" y="156" width="240" height="78" rx="10" class="caja"/>
+        <text x="120" y="190" text-anchor="middle" class="tt">Cambiar cuesta más</text><text x="120" y="216" text-anchor="middle" class="tm">entender, arreglar, esperar</text>
+        <path d="M510,47 Q620,47 620,148" class="flecha b" marker-end="url(#pq-punta)"/>
+        <path d="M620,234 Q620,343 518,343" class="flecha b" marker-end="url(#pq-punta)"/>
+        <path d="M230,343 Q120,343 120,242" class="flecha b" marker-end="url(#pq-punta)"/>
+        <path d="M120,156 Q120,47 222,47" class="flecha b" marker-end="url(#pq-punta)"/>
+        <text x="370" y="190" text-anchor="middle" class="tc b">CÍRCULO VICIOSO</text>
+        <text x="370" y="214" text-anchor="middle" class="tm">cada vuelta deja más deuda</text>
+      </svg>
+    </div>
+    <div class="panel suave"><p class="grande">El equipo no se volvió peor: <b>cada atajo suma deuda</b>, y cada sprint paga más <b>intereses</b> antes de poder construir algo nuevo.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El tiempo no desapareció: se fue a pagar los intereses de los atajos.</span><span class="num"><span class="sello">iSAQB · SEI</span>4 / 20</span></footer>
+</section>
+
+<section class="slide portada">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Unidad 2 · Decisiones, deuda y dominio</span></header>
+<div class="cuerpo">
+  <div>
+    <div class="ses">Arquitectura de Software · Sesión 04</div>
+    <h1>Deuda técnica y métricas</h1>
+    <p class="lede">La deuda no se ve hasta que se mide. Hoy medimos el acoplamiento de Cupo, inventariamos su deuda y pagamos la que hace frágil todo lo demás.</p>
+    <dl class="ficha"><div><dt>Duración</dt><dd>3 horas</dd></div><div><dt>Caso de estudio</dt><dd>Cupo · NestJS</dd></div><div><dt>Lectura</dt><dd>Kruchten, Nord y Ozkaya</dd></div></dl>
+  </div>
+  <nav class="agenda"><h2>4 partes de la clase</h2><div class="item"><span class="n">01</span><span class="t">Deuda técnica<span class="s">La metáfora, el cuadrante de Fowler y los olores</span></span></div><div class="item"><span class="n">02</span><span class="t">Medir el acoplamiento<span class="s">Ca, Ce, inestabilidad, cohesión y ciclos</span></span></div><div class="item"><span class="n">03</span><span class="t">Inventariar y priorizar<span class="s">14 deudas, impacto contra esfuerzo</span></span></div><div class="item"><span class="n">04</span><span class="t">Pagar la deuda de Cupo<span class="s">D1, D2 y D3, medir otra vez y cierre</span></span></div></nav>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>5 / 20</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 01</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 01</div>
+  <h1>Deuda técnica</h1>
+  <p class="lede">No es «código feo»: es el costo extra que pagas en cada cambio futuro por un atajo de hoy.</p>
+  <div class="temas"><span class="chip">La metáfora</span><span class="chip">Capital e interés</span><span class="chip">Cuadrante de Fowler</span><span class="chip">Olores arquitectónicos</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>6 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 01 · Deuda técnica</span></header>
+<div class="titular">
+  <div><h1>Deuda técnica</h1><div class="exp"><b>Technical debt</b> · un préstamo que se paga con intereses</div></div>
+  <div class="chips"><span class="chip tipo">Metáfora</span><span class="chip origen">Ward Cunningham · 1992</span></div>
+</div>
+<div class="cuerpo">
+  <p class="defin">El <b>capital</b> es el atajo que tomaste. El <b>interés</b> es lo que te cuesta de más cada cambio mientras el atajo sigue ahí. Como toda deuda, se puede tomar a propósito, pero hay que saber <b>cuánto se debe y cuándo se paga</b>.</p><div class="col"><blockquote class="cita">«Entregar código a medio hacer es como endeudarse. Un poco de deuda acelera el desarrollo, siempre que se pague pronto. El peligro aparece cuando la deuda no se paga: cada minuto con código no del todo correcto cuenta como interés.»<footer>Ward Cunningham · OOPSLA 1992 (traducción libre)</footer></blockquote></div>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Ward Cunningham, creador del primer wiki, la usa en 1992 para explicarle a un cliente financiero por qué había que refactorizar.</dd></div><div class="dato"><dt>Qué resuelve</dt><dd>Habla el idioma del negocio: «deuda» e «intereses» se entienden sin saber programar. Permite negociar tiempo para pagarla.</dd></div><div class="dato"><dt>Arquitectónica</dt><dd>La más cara: ciclos, dependencias mal dirigidas, datos duplicados. No se arregla en un archivo; toca la estructura.</dd></div><div class="dato no"><dt>Cuidado</dt><dd>No toda imperfección es deuda: si nunca vas a cambiar ese código, <b>no paga intereses</b>. Y sin medirla, es una opinión.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>El comentario «ojo: no mover este import» de <code>app.module.ts</code> es interés puro: todos pagan con miedo cada vez que tocan ese archivo, y nadie sabe por qué.</span></div>
+<footer class="pie"><span class="idea">La deuda se puede tomar a propósito; lo grave es no saber cuánto se debe.</span><span class="num"><span class="sello">iSAQB · SEI</span>7 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 01 · Deuda técnica</span></header>
+<div class="titular">
+  <div><h1>El cuadrante de la deuda</h1><div class="exp">No toda deuda es igual: importa <b>si lo sabías</b> y <b>si tenías un plan</b> · Martin Fowler, 2009</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:150px 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:14px;align-content:start">
+  <span></span><h3 style="align-self:end">Imprudente · sin plan</h3><h3 style="align-self:end">Prudente · con plan</h3>
+  <h3 style="align-self:center">Deliberada<br>«lo sabíamos»</h3>
+  <div class="tarjeta b" style="padding:22px 26px;font-size:calc(21px*var(--k));gap:12px"><span class="h" style="font-size:calc(27px*var(--k))">«No hay tiempo para diseñar.»</span><span>Se sabe que está mal y no hay plan para pagarlo. La peor combinación.</span></div>
+  <div class="tarjeta" style="padding:22px 26px;font-size:calc(21px*var(--k));gap:12px"><span class="h" style="font-size:calc(27px*var(--k))">«Lo sacamos ahora y lo pagamos después.»</span><span>Un atajo consciente, con fecha. En Cupo: <b>los archivos JSON</b> (ADR-0002) y la falta de puertos (ADR-0001).</span></div>
+  <h3 style="align-self:center">Inadvertida<br>«no lo vimos»</h3>
+  <div class="tarjeta b" style="padding:22px 26px;font-size:calc(21px*var(--k));gap:12px"><span class="h" style="font-size:calc(27px*var(--k))">«¿Capas? ¿Qué es eso?»</span><span>Se tomó sin saberlo, por falta de conocimiento. En Cupo: <b>el cajón de sastre</b> <code>utils.ts</code>.</span></div>
+  <div class="tarjeta gris" style="padding:22px 26px;font-size:calc(21px*var(--k));gap:12px"><span class="h" style="font-size:calc(27px*var(--k))">«Ahora sabemos cómo debimos hacerlo.»</span><span>Inevitable: se aprende construyendo. En Cupo: <b>el ciclo de pagos</b>, que nadie planeó.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">La deuda deliberada y prudente es una herramienta; las otras son accidentes.</span><span class="num"><span class="sello">iSAQB · SEI</span>8 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 01 · Deuda técnica</span></header>
+<div class="titular">
+  <div><h1>Olores arquitectónicos</h1><div class="exp">Síntomas en la estructura que suelen esconder deuda · los tres que buscamos hoy en Cupo</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+    <div class="tarjeta b" style="gap:10px;padding:20px 24px"><span class="c">Ciclo</span><span class="h">Dependencia circular</span><span>A usa a B y B usa a A. No se pueden entender, probar ni separar por separado. En Nest, <b>puede impedir que la app arranque</b>.</span><span class="x">En Cupo: <code>inscripciones.service ⇄ pagos.service</code>.</span></div>
+    <div class="tarjeta b" style="gap:10px;padding:20px 24px"><span class="c">Hub</span><span class="h">Cajón de sastre</span><span>Un archivo que todos importan y que mezcla cosas sin relación. Cualquier cambio ahí puede romper a cualquiera.</span><span class="x">En Cupo: <code>utils.ts</code>, importado por 9 archivos.</span><span style="border-top:1px dashed var(--line);padding-top:10px;font-size:.92em"><b>Ojo con los barrels</b>: el <code>index.ts</code> que re-exporta todo, tan común en Nest, es un hub disfrazado. Todos importan de ahí, cada import arrastra la carpeta entera y esconde ciclos que en Nest aparecen como <code>undefined</code> al arrancar.</span></div>
+    <div class="tarjeta b" style="gap:10px;padding:20px 24px"><span class="c">Duplicación</span><span class="h">Dos fuentes de verdad</span><span>El mismo dato en dos lugares. Algún día uno cambia y el otro no, y nadie sabe cuál vale.</span><span class="x">En Cupo: <code>GESTION_ACTUAL</code> y <code>oferta.json</code>.</span></div>
+  </div>
+  <div class="cupo"><span class="et">Evidencia</span><span>Cuatro pruebas «Problema · S4» pasan <b>porque las deudas existen</b>. La más curiosa carga <code>PagosService</code> primero y muestra que Nest no puede armar <code>InscripcionesService</code>: es el comentario «ojo» de <code>app.module.ts</code>, convertido en evidencia.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">Un olor no es un error todavía: es dónde mirar primero.</span><span class="num"><span class="sello">iSAQB · SEI</span>9 / 20</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 02</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 02</div>
+  <h1>Medir el acoplamiento</h1>
+  <p class="lede">Tres números por módulo propuestos por Robert C. Martin, más la búsqueda de ciclos. Sin herramientas mágicas: un script de unas 130 líneas.</p>
+  <div class="temas"><span class="chip">Ca · aferente</span><span class="chip">Ce · eferente</span><span class="chip">I · inestabilidad</span><span class="chip">Cohesión</span><span class="chip">Ciclos</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>10 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 02 · Medir el acoplamiento</span></header>
+<div class="titular">
+  <div><h1>Ca, Ce e inestabilidad</h1><div class="exp">En Cupo, un módulo es una carpeta de <code>src/</code></div></div>
+  <div class="chips"><span class="chip tipo">Métricas</span><span class="chip origen">Robert C. Martin · 1994</span></div>
+</div>
+<div class="cuerpo" style="grid-template-columns:1fr 1fr;align-items:center">
+  <table class="tabla"><thead><tr><th>métrica</th><th>qué cuenta</th><th>cómo leerla</th></tr></thead><tbody>
+    <tr><td><span class="k">Ca</span> aferente</td><td>Cuántos módulos <b>dependen de este</b>.</td><td>Alto: muchos se rompen si este cambia.</td></tr>
+    <tr><td><span class="k">Ce</span> eferente</td><td>De cuántos módulos <b>depende este</b>.</td><td>Alto: este se rompe si cualquiera cambia.</td></tr>
+    <tr><td><span class="k">I</span> inestabilidad</td><td><code>Ce / (Ca + Ce)</code></td><td>0 estable · 1 inestable.</td></tr>
+  </tbody></table>
+  <svg class="dg" viewBox="0 0 660 270" style="width:100%;height:250px" role="img" aria-label="Un módulo con flechas que entran (Ca) y flechas que salen (Ce)">
+    <defs><marker id="m4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta a" d="M0,0 L10,5 L0,10 z"/></marker><marker id="m4b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta b" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <text x="70" y="16" text-anchor="middle" class="tc a">LO USAN · Ca = 3</text>
+    <rect x="0" y="30" width="140" height="46" rx="8" class="caja"/><text x="70" y="59" text-anchor="middle">oferta</text>
+    <rect x="0" y="112" width="140" height="46" rx="8" class="caja"/><text x="70" y="141" text-anchor="middle">reportes</text>
+    <rect x="0" y="194" width="140" height="46" rx="8" class="caja"/><text x="70" y="223" text-anchor="middle">pagos</text>
+    <path d="M140,53 L218,118" class="flecha a" marker-end="url(#m4a)"/><path d="M140,135 L218,135" class="flecha a" marker-end="url(#m4a)"/><path d="M140,217 L218,152" class="flecha a" marker-end="url(#m4a)"/>
+    <rect x="226" y="95" width="208" height="80" rx="12" class="acento"/><text x="330" y="132" text-anchor="middle" class="tt">módulo</text><text x="330" y="158" text-anchor="middle" class="tc">I = 2 / (3 + 2) = 0.40</text>
+    <path d="M434,118 L512,72" class="flecha b" marker-end="url(#m4b)"/><path d="M434,152 L512,198" class="flecha b" marker-end="url(#m4b)"/>
+    <text x="590" y="16" text-anchor="middle" class="tc b">USA · Ce = 2</text>
+    <rect x="520" y="48" width="140" height="46" rx="8" class="caja"/><text x="590" y="77" text-anchor="middle">usuarios</text>
+    <rect x="520" y="176" width="140" height="46" rx="8" class="caja"/><text x="590" y="205" text-anchor="middle">auth</text>
+  </svg>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Robert C. Martin las publica en <i>OO Design Quality Metrics</i> (1994) y las desarrolla en <i>Agile Software Development</i> (2002).</dd></div><div class="dato"><dt>Estable</dt><dd>I cercano a 0: lo usan muchos, no usa a nadie. <b>Tiene que cambiar poco</b>. En Cupo: <code>persistencia</code>.</dd></div><div class="dato"><dt>Inestable</dt><dd>I cercano a 1: usa a otros, nadie lo usa. <b>Cambiarlo es barato</b>. En Cupo: <code>reportes</code> (I = 1.00).</dd></div><div class="dato no"><dt>Cuidado</dt><dd>Ni estable es bueno ni inestable es malo. El problema es un módulo <b>estable que cambia seguido</b>, o un ciclo.</dd></div></dl>
+<footer class="pie"><span class="idea">Las dependencias deberían apuntar hacia lo estable.</span><span class="num"><span class="sello">iSAQB · SEI</span>11 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 02 · Medir el acoplamiento</span></header>
+<div class="titular">
+  <div><h1>Ciclos y cohesión</h1><div class="exp">Dos olores que ninguna métrica por módulo muestra sola</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.1fr 1fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <svg class="dg" viewBox="0 0 700 250" style="width:100%;height:230px" role="img" aria-label="Ciclo: inscripciones.service importa pagos.service y pagos.service importa inscripciones.service">
+      <defs><marker id="m4c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta b" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect x="0" y="80" width="260" height="76" rx="12" class="naranja"/><text x="130" y="114" text-anchor="middle" class="tt" style="font-size:19px">inscripciones.service</text><text x="130" y="140" text-anchor="middle" class="tc">usa PagosService</text>
+      <rect x="440" y="80" width="260" height="76" rx="12" class="naranja"/><text x="570" y="114" text-anchor="middle" class="tt" style="font-size:19px">pagos.service</text><text x="570" y="140" text-anchor="middle" class="tc">importa GESTION_ACTUAL</text>
+      <path d="M260,100 C330,40 370,40 432,100" class="flecha b" marker-end="url(#m4c)"/>
+      <path d="M440,136 C370,196 330,196 268,136" class="flecha b" marker-end="url(#m4c)"/>
+      <text x="350" y="236" text-anchor="middle" class="tc b">si se carga pagos primero, Nest no arranca</text>
+    </svg>
+    <div class="panel alerta"><h3>Por qué un ciclo es grave</h3><p>Ningún lado se puede entender, probar, cambiar ni separar <b>solo</b>. Se busca con el algoritmo de <b>Tarjan</b> (componentes fuertemente conexos): todo componente con más de un nodo es un ciclo.</p></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel"><h3>Cohesión</h3><p class="grande">Lo contrario de un cajón de sastre: las cosas de un módulo <b>cambian por los mismos motivos</b>.</p><p><code>utils.ts</code> tiene cohesión baja: el formato de la moneda y la carpeta de datos no tienen nada que ver.</p></div>
+    <div class="panel"><h3>El ciclo que no esperábamos</h3><p><code>oferta</code> usa el repositorio de inscripciones para contar cupos, e <code>inscripciones</code> usa el de oferta. No impide arrancar, pero <b>ata a los dos módulos</b>. Va al inventario como D4.</p></div>
+    <div class="panel suave"><h3>Herramientas reales</h3><p>dependency-cruiser, madge, SonarQube. Escribimos la nuestra para ver <b>exactamente qué se mide</b>.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Un ciclo convierte dos módulos en uno solo, pero sin admitirlo.</span><span class="num"><span class="sello">iSAQB · SEI</span>12 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 02 · Medir el acoplamiento</span></header>
+<div class="titular">
+  <div><h1>Cupo, medido</h1><div class="exp">La salida de <code>pnpm metricas</code> al empezar la sesión</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:16px;align-content:start">
+  <table class="tabla" style="font-size:calc(15.5px*var(--k));line-height:1.3"><thead><tr><th>módulo</th><th>arch.</th><th>Ca</th><th>lo usan</th><th>Ce</th><th>usa</th><th>I</th><th>qué significa</th></tr></thead><tbody>
+    <tr><td>auth</td><td class="mono">5</td><td class="mono">4</td><td class="m">inscripciones, kardex, oferta, reportes</td><td class="mono">1</td><td class="m">usuarios</td><td class="mono">0.20</td><td><b>Estable</b>: cuatro módulos se apoyan en él. Debe cambiar poco.</td></tr>
+    <tr><td>inscripciones</td><td class="mono">8</td><td class="mono">3</td><td class="m">oferta, pagos, reportes</td><td class="mono" style="color:var(--bad);font-weight:500">6</td><td class="m">auth, notificaciones, oferta, pagos, usuarios, utils</td><td class="mono">0.67</td><td><b>El más acoplado</b>: usa 6 de los otros 8 módulos, así que casi cualquier cambio lo afecta. Está en los dos ciclos.</td></tr>
+    <tr><td>kardex</td><td class="mono">3</td><td class="mono">0</td><td class="m">—</td><td class="mono">2</td><td class="m">auth, usuarios</td><td class="mono">1.00</td><td><b>Hoja</b>: nadie lo usa. Cambiarlo es barato.</td></tr>
+    <tr><td>notificaciones</td><td class="mono">2</td><td class="mono">1</td><td class="m">inscripciones</td><td class="mono">1</td><td class="m">utils</td><td class="mono">0.50</td><td>Pequeño y equilibrado. Sano.</td></tr>
+    <tr><td>oferta</td><td class="mono">3</td><td class="mono">2</td><td class="m">inscripciones, reportes</td><td class="mono">3</td><td class="m">auth, inscripciones, utils</td><td class="mono">0.60</td><td>Usa a <code>inscripciones</code> y <code>inscripciones</code> lo usa a él: <b>ciclo</b>.</td></tr>
+    <tr><td>pagos</td><td class="mono">4</td><td class="mono">2</td><td class="m">inscripciones, reportes</td><td class="mono">2</td><td class="m">inscripciones, utils</td><td class="mono">0.50</td><td>Ida y vuelta con <code>inscripciones</code>: <b>ciclo</b> de archivos y de módulos.</td></tr>
+    <tr><td>reportes</td><td class="mono">2</td><td class="mono">0</td><td class="m">—</td><td class="mono">4</td><td class="m">auth, inscripciones, oferta, pagos</td><td class="mono">1.00</td><td><b>Hoja</b> que lee de cuatro módulos. Que sea inestable es lo esperado.</td></tr>
+    <tr><td>usuarios</td><td class="mono">1</td><td class="mono">3</td><td class="m">auth, inscripciones, kardex</td><td class="mono">1</td><td class="m">utils</td><td class="mono">0.25</td><td><b>Estable</b>: es la base de <code>auth</code>.</td></tr>
+    <tr><td>utils</td><td class="mono">1</td><td class="mono" style="color:var(--bad);font-weight:500">5</td><td class="m">inscripciones, notificaciones, oferta, pagos, usuarios</td><td class="mono">0</td><td class="m">—</td><td class="mono">0.00</td><td><b>Hub</b>: el más estable, pero mezcla cosas sin relación. Un cambio ahí toca 5 módulos (9 archivos).</td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="panel"><h3>Cómo leer una fila</h3><p><b>Ca</b>: cuántos módulos distintos importan algo de este (columna «lo usan»). <b>Ce</b>: de cuántos importa este (columna «usa»). <b>I = Ce / (Ca + Ce)</b>. Por ejemplo, <code>auth</code>: 1 / (4 + 1) = 0.20. Los imports dentro del mismo módulo no cuentan.</p><p>Con <b>I baja</b>, cambiarlo es caro porque muchos dependen de él. Con <b>I alta</b>, cambiarlo es barato porque nadie depende de él.</p></div>
+    <div class="panel"><h3>Lo que salta a la vista</h3><ul class="lista no"><li>1 ciclo de archivos: <code>pagos ⇄ inscripciones</code>.</li><li>1 ciclo de tres módulos: <code>inscripciones ⇄ oferta ⇄ pagos</code>.</li></ul><p style="color:var(--muted)">Regla: cada deuda del inventario lleva <b>evidencia</b>, una prueba o una métrica, nunca una opinión.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Con números, la deuda deja de ser una sensación y se vuelve un dato.</span><span class="num"><span class="sello">iSAQB · SEI</span>13 / 20</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 03</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 03</div>
+  <h1>Inventariar y priorizar</h1>
+  <p class="lede">Un inventario de deuda es el backlog de la arquitectura: qué se debe, cuánto cuesta, cuánto duele y cuándo se paga.</p>
+  <div class="temas"><span class="chip">El inventario</span><span class="chip">Impacto contra esfuerzo</span><span class="chip">Qué pagar primero</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>14 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 03 · Inventariar y priorizar</span></header>
+<div class="titular">
+  <div><h1>El inventario de Cupo</h1><div class="exp">14 deudas, cada una con evidencia y <b>sesión donde se paga</b> · <code>docs/deuda/inventario.md</code></div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-content:start">
+  <table class="tabla"><thead><tr><th>ID</th><th>deuda</th><th>impacto / esfuerzo</th><th>sesión</th></tr></thead><tbody>
+    <tr><td><span class="k">D1</span></td><td>Ciclo inscripciones ⇄ pagos: Nest puede no arrancar</td><td>alto / bajo</td><td class="mono" style="color:var(--ok)">4</td></tr>
+    <tr><td><span class="k">D2</span></td><td><code>utils.ts</code>, cajón de sastre de 9 importadores</td><td>medio / bajo</td><td class="mono" style="color:var(--ok)">4</td></tr>
+    <tr><td><span class="k">D3</span></td><td>La gestión tiene dos fuentes de verdad</td><td>alto / bajo</td><td class="mono" style="color:var(--ok)">4</td></tr>
+    <tr><td><span class="k">D4</span></td><td>Ciclo de módulos inscripciones ⇄ oferta</td><td>medio / medio</td><td class="mono">7</td></tr>
+    <tr><td><span class="k">D5</span></td><td>Modelo anémico: «inscritos ≤ cupo» en 3 archivos</td><td>alto / medio</td><td class="mono">5</td></tr>
+    <tr><td><span class="k">D6</span></td><td>«Paralelo» y «grupo»: dos nombres, un concepto</td><td>bajo / bajo</td><td class="mono">5</td></tr>
+    <tr><td><span class="k">D7</span></td><td>Sin puertos: reloj real y repositorios concretos</td><td>medio / medio</td><td class="mono">6</td></tr>
+  </tbody></table>
+  <table class="tabla"><thead><tr><th>ID</th><th>deuda</th><th>impacto / esfuerzo</th><th>sesión</th></tr></thead><tbody>
+    <tr><td><span class="k">D8</span></td><td>El modelo del legado se filtra: <code>CONV</code> crudo</td><td>alto / medio</td><td class="mono">7</td></tr>
+    <tr><td><span class="k">D9</span></td><td>Si el correo falla, responde 500 aunque cobró</td><td>alto / medio</td><td class="mono">8</td></tr>
+    <tr><td><span class="k">D10</span></td><td>Sobrecupo con inscripciones simultáneas</td><td>alto / medio</td><td class="mono">9</td></tr>
+    <tr><td><span class="k">D11</span></td><td>Sesiones en memoria: una sola instancia</td><td>alto / bajo</td><td class="mono">9</td></tr>
+    <tr><td><span class="k">D12</span></td><td>Fronteras de confianza: monto del cliente, etc.</td><td>alto / bajo</td><td class="mono">10</td></tr>
+    <tr><td><span class="k">D13</span></td><td>La pasarela no tiene timeout ni plan B</td><td>alto / medio</td><td class="mono">10</td></tr>
+    <tr><td><span class="k">D14</span></td><td>Sin diagramas ni reglas de arquitectura completas</td><td>medio / bajo</td><td class="mono">11</td></tr>
+  </tbody></table>
+</div></div>
+<footer class="pie"><span class="idea">El inventario es el backlog del módulo: cada deuda tiene dueño y fecha.</span><span class="num"><span class="sello">iSAQB · SEI</span>15 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 03 · Inventariar y priorizar</span></header>
+<div class="titular">
+  <div><h1>Impacto contra esfuerzo</h1><div class="exp">Primero lo de <b>impacto alto y esfuerzo bajo</b>; lo demás se planifica</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <table class="tabla" style="font-size:calc(20px*var(--k))"><thead><tr><th></th><th>esfuerzo bajo</th><th>esfuerzo medio</th></tr></thead><tbody>
+    <tr><td>Impacto alto</td><td><span class="mono" style="color:var(--a)">D1 · D3 · D11 · D12</span><br><span class="estado si">hacer ya</span></td><td><span class="mono" style="color:var(--a)">D5 · D8 · D9 · D10 · D13</span><br><span class="estado pend">planificar</span></td></tr>
+    <tr><td>Impacto medio</td><td><span class="mono" style="color:var(--a)">D2 · D14</span><br><span class="estado si">cuando se pase cerca</span></td><td><span class="mono" style="color:var(--a)">D4 · D7</span><br><span class="estado pend">planificar</span></td></tr>
+    <tr><td>Impacto bajo</td><td><span class="mono" style="color:var(--a)">D6</span><br><span class="estado si">de paso</span></td><td></td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <div class="panel suave"><h3>Por qué hoy solo D1, D2 y D3</h3><p class="grande">Son de esfuerzo bajo y <b>debilitan todo lo demás</b>: con un ciclo que rompe el arranque, cualquier refactor de las próximas sesiones es más arriesgado.</p></div>
+    <div class="panel"><h3>Pagar no siempre es reescribir</h3><p class="grande">D7 (sin puertos) es deuda <b>deliberada y prudente</b>: la tomamos en el ADR-0001 sabiendo que se paga en la Sesión 6. Tiene fecha; no es urgente.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Priorizar es decidir qué deuda dejar viva a propósito.</span><span class="num"><span class="sello">iSAQB · SEI</span>16 / 20</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 04</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 04</div>
+  <h1>Pagar la deuda de Cupo</h1>
+  <p class="lede">Medir, inventariar, pagar D1, D2 y D3, medir otra vez y convertir las métricas en reglas.</p>
+  <div class="temas"><span class="chip">Los 6 pasos</span><span class="chip">Romper el ciclo</span><span class="chip">Vaciar el cajón</span><span class="chip">Antes y después</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>17 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 04 · Pagar la deuda</span></header>
+<div class="titular">
+  <div><h1>Los 6 pasos</h1><div class="exp">Medir antes, pagar lo que más debilita, <b>medir otra vez</b> y dejar reglas</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div class="pasos">
+    <div class="paso"><span class="n">Paso 1</span><span class="h">Medir</span><span>Un script de ~130 líneas: grafo de imports, Ca, Ce, I y ciclos con Tarjan.</span></div>
+    <div class="paso"><span class="n">Paso 2</span><span class="h">Inventariar</span><span>14 deudas con evidencia, impacto, esfuerzo y sesión.</span></div>
+    <div class="paso"><span class="n">Paso 3</span><span class="h">Gestión</span><span>D1 y D3: una sola fuente de verdad rompe el ciclo.</span></div>
+    <div class="paso"><span class="n">Paso 4</span><span class="h">utils</span><span>D2: cada función se muda con quien la usa.</span></div>
+    <div class="paso"><span class="n">Paso 5</span><span class="h">Medir otra vez</span><span>Comparar con números, no con impresiones.</span></div>
+    <div class="paso"><span class="n">Paso 6</span><span class="h">Reglas</span><span>Si aparece un ciclo entre archivos, el build falla.</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="panel"><h3>Paso 3 · Una fuente de verdad rompe el ciclo</h3><p><code>PagosService</code> importaba <code>GESTION_ACTUAL</code> desde <code>inscripciones.service</code>, que a su vez importa <code>PagosService</code>. Ahora la gestión se lee de la oferta y pagos <b>la recibe por parámetro</b>: su Ce baja de 2 a 1.</p></div>
+    <div class="panel"><h3>Paso 4 · Vaciar el cajón de sastre</h3><p>Archivos JSON → <code>persistencia/archivos-json.ts</code>. <code>aMinutos</code> → las reglas. <code>formatoBs</code> → el correo. <code>nuevoId</code> y <code>ahoraIso</code> → una línea donde se usan. <code>utils.ts</code> <b>desaparece</b>.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Pruébalo: mueve el import de PagosService a la primera línea; ahora Nest arranca.</span><span class="num"><span class="sello">iSAQB · SEI</span>18 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 04 · Resultados</span></header>
+<div class="titular">
+  <div><h1>Antes y después</h1><div class="exp">La misma salida de <code>pnpm metricas</code>, al terminar</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-content:start">
+  <table class="tabla"><thead><tr><th>medida</th><th>inicio</th><th>al terminar</th></tr></thead><tbody>
+    <tr><td>Ciclos entre archivos</td><td class="mono" style="color:var(--bad)">1</td><td class="mono" style="color:var(--ok);font-weight:500">0</td></tr>
+    <tr><td>Ciclo entre módulos</td><td class="mono" style="color:var(--bad)">3 módulos</td><td class="mono" style="color:var(--warn);font-weight:500">2 · D4, Sesión 7</td></tr>
+    <tr><td>Archivo más importado</td><td class="mono" style="color:var(--bad)">utils.ts · 9</td><td class="mono" style="color:var(--ok);font-weight:500">5</td></tr>
+    <tr><td>Ce de <code>pagos</code></td><td class="mono" style="color:var(--bad)">2</td><td class="mono" style="color:var(--ok);font-weight:500">1</td></tr>
+    <tr><td>Fuentes de verdad de la gestión</td><td class="mono" style="color:var(--bad)">2</td><td class="mono" style="color:var(--ok);font-weight:500">1</td></tr>
+    <tr><td>¿Importa el orden de los imports?</td><td class="mono" style="color:var(--bad)">sí</td><td class="mono" style="color:var(--ok);font-weight:500">no</td></tr>
+  </tbody></table>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel"><h3>La evidencia</h3>
+      <div class="filas" style="--cols:1fr auto">
+        <div class="fila"><span>Pruebas en total</span><b class="mono">75 → 77</b></div>
+        <div class="fila"><span>Pruebas de soluciones</span><b class="mono">23 → 29</b></div>
+        <div class="fila"><span>Problemas pendientes</span><b class="mono">22 → 18</b></div>
+      </div>
+    </div>
+    <div class="panel suave"><h3>Las métricas se vuelven reglas</h3><p>La función <code>analizar()</code> del script se importa desde una prueba: si alguien crea un ciclo, <b>el build falla</b>. El ciclo que queda está escrito en la prueba con su sesión.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Medir otra vez es lo que convierte un refactor en una mejora demostrada.</span><span class="num"><span class="sello">iSAQB · SEI</span>19 / 20</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 4 · Deuda técnica</span><span>Parte 04 · Cierre</span></header>
+<div class="titular">
+  <div><h1>Cierre</h1><div class="exp">Lo que nos llevamos y lo que viene</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-content:start">
+  <div class="panel">
+    <h3>Ideas clave</h3>
+    <ul class="lista num">
+      <li>La deuda técnica es el <b>interés</b> que pagas en cada cambio por un atajo.</li>
+      <li>Deliberada y prudente es una <b>herramienta</b>; las demás, accidentes.</li>
+      <li><b>Ca, Ce e I</b> miden el acoplamiento; los <b>ciclos</b> se buscan aparte.</li>
+      <li>Cada deuda, con <b>evidencia</b>: una prueba o una métrica.</li>
+      <li>Se prioriza por <b>impacto contra esfuerzo</b>.</li>
+      <li>Se mide <b>antes y después</b>, y la métrica se vuelve regla.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>Próxima sesión</h3>
+    <p class="grande"><b>Hablar como la Dirección de Carrera, también en el código</b></p>
+    <p>D5 y D6: lenguaje ubicuo, mapa de contextos, entidades y agregados. La regla «inscritos ≤ cupo» deja de estar repartida en tres archivos.</p>
+    <p style="color:var(--muted)">Lectura: Vernon · <i>Domain-Driven Design Distilled</i>.</p>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">La deuda no se ve hasta que se mide.</span><span class="num"><span class="sello">iSAQB · SEI</span>20 / 20</span></footer>
+</section>
+</main>
+<script>
+[].forEach.call(document.querySelectorAll('.pts'),function(e){var n=+e.getAttribute('data-n');e.innerHTML='●'.repeat(n)+'<i>'+'○'.repeat(5-n)+'</i>'});
+</script>
+<div class="progreso" id="progreso"></div>
+<nav class="ctrl" aria-label="Controles">
+  <button type="button" data-ir="-1" title="Anterior (←)">←</button>
+  <button type="button" data-ir="1" title="Siguiente (→)">→</button>
+  <button type="button" id="tema" title="Tema claro u oscuro (T)">tema</button>
+  <button type="button" id="pantalla" title="Pantalla completa (F)">⛶</button>
+</nav>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0, raiz=document.documentElement;
+  function guardar(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function leer(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  var t=leer('diapositivas-tema'); if(t) raiz.setAttribute('data-theme',t);
+  function escalar(){
+    var s=Math.min(innerWidth/1600, innerHeight/900);
+    raiz.style.setProperty('--s', s);
+  }
+  function mostrar(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.classList.toggle('activa',k===i)});
+    document.getElementById('progreso').style.width=((i+1)/slides.length*100)+'%';
+    if(location.hash!=='#'+(i+1)) history.replaceState(null,'','#'+(i+1));
+  }
+  function tema(){
+    var oscuro=raiz.getAttribute('data-theme')==='dark' ||
+      (!raiz.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var nuevo=oscuro?'light':'dark'; raiz.setAttribute('data-theme',nuevo); guardar('diapositivas-tema',nuevo);
+  }
+  function pantalla(){
+    if(document.fullscreenElement) document.exitFullscreen(); else if(raiz.requestFullscreen) raiz.requestFullscreen();
+  }
+  addEventListener('resize',escalar);
+  addEventListener('keydown',function(e){
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    var k=e.key;
+    if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();mostrar(i+1)}
+    else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'||k==='Backspace'){e.preventDefault();mostrar(i-1)}
+    else if(k==='Home') mostrar(0);
+    else if(k==='End') mostrar(slides.length-1);
+    else if(k==='t'||k==='T') tema();
+    else if(k==='f'||k==='F') pantalla();
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){
+    if(x0===null) return; var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>40) mostrar(dx<0?i+1:i-1);
+  });
+  [].forEach.call(document.querySelectorAll('[data-ir]'),function(b){
+    b.addEventListener('click',function(){mostrar(i+Number(b.getAttribute('data-ir')))});
+  });
+  document.getElementById('tema').addEventListener('click',tema);
+  document.getElementById('pantalla').addEventListener('click',pantalla);
+  // Cada diapositiva empieza con el texto al 122 % y lo achica de a poco hasta que cabe en 900 px (mínimo 80 %).
+  // En las diapositivas libres también tiene que caber el lienzo, para no montarse sobre el pie.
+  function ajustar(){
+    slides.forEach(function(s){
+      s.style.display="flex"; var k=1.22;
+      s.style.setProperty('--k',k);
+      var l=s.querySelector('.lienzo');
+      while((s.scrollHeight>s.clientHeight+1 || (l && l.scrollHeight>l.clientHeight+1)) && k>0.8){k=Math.round((k-0.02)*100)/100; s.style.setProperty('--k',k)}
+      s.setAttribute('data-k',k); s.style.display='';
+    });
+  }
+  var oculto=null;
+  addEventListener('mousemove',function(){
+    document.body.classList.add('mueve'); clearTimeout(oculto);
+    oculto=setTimeout(function(){document.body.classList.remove('mueve')},1800);
+  });
+  escalar();
+  ajustar();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(ajustar);
+  mostrar((parseInt(location.hash.slice(1),10)||1)-1);
+})();
+</script>
+</body>
+</html>

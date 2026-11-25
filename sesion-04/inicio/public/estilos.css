@@ -1,0 +1,95 @@
+/* Estilo de las guías del curso (ui-template): tokens claro/oscuro, texto light, IBM Plex Mono para códigos y cifras. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --sunk:#E8ECF0; --ink:#14202B; --muted:#56636F; --line:#D5DCE3;
+  --a:#0E6A86; --a-soft:#DCEEF4; --b:#A84D1A; --b-soft:#F6E7DD;
+  --ok:#2A7A4B; --ok-soft:#DFF1E6; --bad:#BC322B; --bad-soft:#F8E0DE;
+  --f-body:sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --bad:#F06C64; --bad-soft:#3B1C1A;
+  color-scheme:dark}}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;font-weight:300;line-height:1.6}
+h1,h2{margin:0;line-height:1.15;font-weight:700;text-wrap:balance}
+h2{font-size:clamp(1.45rem,3vw,1.95rem)}
+p{margin:0;max-width:70ch}
+b,strong{font-weight:500}
+code{font-family:var(--f-mono);font-size:.86em}
+:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.12rem;color:var(--muted);max-width:52ch}
+
+/* ---------- barra superior ---------- */
+header{background:var(--surface);border-bottom:1px solid var(--line)}
+.barra{max-width:1080px;margin:0 auto;padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px 20px;justify-content:space-between;align-items:center}
+.marca{display:flex;gap:12px;align-items:center}
+.logo{width:38px;height:38px;border-radius:10px;background:var(--a);color:var(--surface);display:grid;place-items:center;font-family:var(--f-mono);font-weight:500;font-size:1.1rem}
+header h1{font-size:1.35rem}
+header small{display:block;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+#sesion{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#saludo{font-size:.9rem;color:var(--muted);margin-right:4px}
+
+/* ---------- contenido ---------- */
+main{max-width:1080px;margin:0 auto;padding:36px 20px 80px;display:flex;flex-direction:column;gap:24px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:480px){.barra,main{padding-inline:16px}section{padding:18px}}
+
+/* ---------- login: formulario + ficha ---------- */
+#vista-login{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:32px;align-items:start;padding:32px}
+.login-texto{display:flex;flex-direction:column;gap:14px}
+#vista-login h2{font-size:clamp(2rem,5vw,2.8rem);letter-spacing:-.01em}
+#form-login{display:flex;flex-direction:column;gap:12px;max-width:360px;margin-top:6px}
+.ficha{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.ficha-fila{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;border-top:1px dashed var(--line);padding-top:8px}
+.ficha .eyebrow+.ficha-fila{border-top:0;padding-top:0}
+.ficha code{color:var(--a)}
+@media (max-width:760px){#vista-login{grid-template-columns:1fr;padding:24px}}
+
+/* ---------- formularios y botones ---------- */
+label{display:flex;flex-direction:column;gap:4px;font-size:.86rem;color:var(--muted)}
+input:not([type]),input[type=password]{font:inherit;font-family:var(--f-mono);font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+input:focus{outline:2px solid var(--a);outline-offset:1px}
+input[type=checkbox]{width:17px;height:17px;accent-color:var(--a);cursor:pointer}
+input[type=checkbox]:disabled{cursor:not-allowed}
+button{font:inherit;font-size:.9rem;font-weight:400;cursor:pointer;border:1px solid var(--a);background:var(--a);color:var(--surface);padding:8px 16px;border-radius:8px;align-self:flex-start}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.4;cursor:not-allowed;filter:none}
+#sesion button,#mia li button{background:var(--surface);color:var(--ink);border-color:var(--line)}
+#sesion button:hover,#mia li button:hover{border-color:var(--muted);filter:none}
+#mia li button{padding:3px 10px;font-size:.8rem;margin-left:auto}
+
+/* ---------- tablas ---------- */
+.tabla,#reportes{overflow-x:auto}
+table{width:100%;min-width:720px;border-collapse:collapse;font-size:.9rem}
+th{font-family:var(--f-mono);font-size:.7rem;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--bg)}
+#tabla-oferta td:nth-child(2){font-family:var(--f-mono);font-size:.82rem;color:var(--a);white-space:nowrap}
+#tabla-oferta td:nth-child(4),#tabla-oferta td:nth-child(7){font-family:var(--f-mono);font-size:.85rem;white-space:nowrap}
+#tabla-oferta td:nth-child(6){font-size:.84rem;color:var(--muted)}
+#reportes td:first-child{font-family:var(--f-mono);font-size:.82rem;color:var(--a)}
+#reportes td:nth-child(n+3){font-family:var(--f-mono);font-size:.85rem}
+#reportes p{font-family:var(--f-mono);font-size:.9rem;margin-bottom:12px}
+.lleno{color:var(--bad);font-weight:500}
+
+/* ---------- resumen, inscripción y kardex ---------- */
+#gestion{font-family:var(--f-mono);font-weight:400;font-size:.6em;color:var(--a);background:var(--a-soft);padding:2px 10px;border-radius:999px;vertical-align:middle}
+.resumen{font-family:var(--f-mono);font-size:.88rem;background:var(--a-soft);color:var(--a);padding:10px 14px;border-radius:8px;max-width:none}
+#mia{display:flex;flex-direction:column;gap:12px}
+#mia>p{font-family:var(--f-mono);font-size:.9rem;color:var(--muted)}
+#mia ul,#kardex{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+#mia li,#kardex li{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-family:var(--f-mono);font-size:.86rem}
+#kardex li{background:var(--bg)}
+
+/* ---------- mensajes ---------- */
+#mensaje{margin:0;max-width:none;font-size:.92rem;font-weight:400}
+#mensaje:empty{display:none}
+#mensaje.ok,#mensaje.error{padding:12px 16px;border-radius:10px;border:1px solid}
+#mensaje.ok{color:var(--ok);background:var(--ok-soft);border-color:var(--ok)}
+#mensaje.error{color:var(--bad);background:var(--bad-soft);border-color:var(--bad)}
