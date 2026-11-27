@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cupo · Inscripciones</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <header>
+    <div class="barra">
+      <div class="marca">
+        <span class="logo" aria-hidden="true">C</span>
+        <div>
+          <h1>Cupo</h1>
+          <small>Inscripciones · proyecto de clase (datos ficticios)</small>
+        </div>
+      </div>
+      <div id="sesion" hidden>
+        <span id="saludo"></span>
+        <button id="btn-reportes" hidden>Reporte de ocupación</button>
+        <button id="btn-salir">Salir</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="vista-login">
+      <div class="login-texto">
+        <span class="eyebrow">Gestión académica · UCB</span>
+        <h2>Iniciar sesión</h2>
+        <p class="lede">Elige tus paralelos, revisa el total y paga con QR en un solo paso.</p>
+        <form id="form-login">
+          <label>Código <input name="codigo" value="2023-1001" autocomplete="username"></label>
+          <label>Contraseña <input name="password" type="password" value="demo1234" autocomplete="current-password"></label>
+          <button>Entrar</button>
+        </form>
+      </div>
+      <aside class="ficha">
+        <span class="eyebrow">Cuentas de prueba</span>
+        <div class="ficha-fila"><span>Regular</span><code>2023-1001</code></div>
+        <div class="ficha-fila"><span>Becado</span><code>2024-1002</code></div>
+        <div class="ficha-fila"><span>Convenio</span><code>2022-1003</code></div>
+        <div class="ficha-fila"><span>Traspaso</span><code>2025-1004</code></div>
+        <div class="ficha-fila"><span>Dirección</span><code>DIR-SIS</code></div>
+        <div class="ficha-fila"><span>Contraseña</span><code>demo1234</code></div>
+      </aside>
+    </section>
+
+    <section id="vista-oferta" hidden>
+      <span class="eyebrow">Paso 1 · Elige tus paralelos</span>
+      <h2>Oferta <span id="gestion"></span></h2>
+      <p id="resumen" class="resumen"></p>
+      <div class="tabla">
+        <table>
+          <thead><tr><th></th><th>Paralelo</th><th>Materia</th><th>Créd.</th><th>Docente</th><th>Horario</th><th>Disponibles</th></tr></thead>
+          <tbody id="tabla-oferta"></tbody>
+        </table>
+      </div>
+      <div><button id="btn-inscribir">Inscribirme y pagar</button></div>
+    </section>
+
+    <section id="vista-mia" hidden>
+      <span class="eyebrow">Gestión actual</span>
+      <h2>Mi inscripción</h2>
+      <div id="mia"></div>
+    </section>
+
+    <section id="vista-kardex" hidden>
+      <span class="eyebrow">Historial académico</span>
+      <h2>Mi kardex</h2>
+      <ul id="kardex"></ul>
+    </section>
+
+    <section id="vista-reportes" hidden>
+      <span class="eyebrow">Dirección de carrera</span>
+      <h2>Ocupación por paralelo</h2>
+      <div id="reportes"></div>
+    </section>
+
+    <p id="mensaje" role="status"></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

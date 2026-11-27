@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sesión 5 · Diseño orientado al dominio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Diapositivas de la sesión. Lienzo fijo de 1600×900 que se escala a la ventana; mismos tokens que guias/assets/guia.css. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --sunk:#E8ECF0; --ink:#14202B; --muted:#56636F; --line:#D5DCE3;
+  --a:#0E6A86; --a-soft:#DCEEF4; --b:#A84D1A; --b-soft:#F6E7DD;
+  --ok:#2A7A4B; --ok-soft:#DFF1E6; --warn:#9A6A12; --warn-soft:#F7EDD6; --bad:#BC322B; --bad-soft:#F8E0DE;
+  --stage:#DDE3E9;
+  --f-body:sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#161F28; --sunk:#1D2832; --ink:#E4EBF1; --muted:#97A5B2; --line:#2A3743;
+  --a:#55B8D8; --a-soft:#13303B; --b:#E58A55; --b-soft:#3A2518;
+  --ok:#5DC28C; --ok-soft:#163324; --warn:#E2AE4E; --warn-soft:#352915; --bad:#F06C64; --bad-soft:#3B1C1A;
+  --stage:#080C10; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--f-body);font-weight:300;overflow:hidden}
+b,strong{font-weight:500}
+code{font-family:var(--f-mono);font-size:.84em;background:var(--sunk);padding:.08em .32em;border-radius:4px}
+.mono{font-family:var(--f-mono)}
+
+.deck{position:fixed;inset:0}
+.slide{position:absolute;left:50%;top:50%;width:1600px;height:900px;margin:-450px 0 0 -800px;
+  transform:scale(var(--s,1));background:var(--bg);display:none;flex-direction:column;
+  padding:44px 72px 34px;gap:22px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.18)}
+.slide.activa{display:flex}
+
+/* barra superior y pie */
+.barra{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:15px;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.barra .marca{display:flex;gap:14px;align-items:center}
+.barra .punto{width:10px;height:10px;border-radius:50%;background:var(--a)}
+.pie{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:30px;
+  border-top:1px solid var(--line);padding-top:16px;font-size:20px;color:var(--muted)}
+.pie .idea{color:var(--ink);font-weight:400}
+.pie .idea::before{content:"→ ";color:var(--a);font-family:var(--f-mono)}
+.pie .num{font-family:var(--f-mono);font-size:15px;white-space:nowrap}
+.pie .sello{color:var(--a);letter-spacing:.08em;margin-right:18px;padding-right:18px;border-right:1px solid var(--line)}
+
+/* portada */
+.portada{justify-content:flex-start}
+.portada .cuerpo{flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:64px;align-items:center}
+.portada h1{font-size:88px;line-height:1.02;font-weight:700;margin:14px 0 26px;letter-spacing:-.015em;text-wrap:balance}
+.portada .lede{font-size:28px;line-height:1.45;color:var(--muted);max-width:30ch}
+.portada .ses{font-family:var(--f-mono);font-size:20px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.agenda{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 34px;display:flex;flex-direction:column;gap:6px}
+.agenda h2{font-family:var(--f-mono);font-size:15px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.agenda .item{display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:baseline;padding:12px 0;border-top:1px solid var(--line)}
+.agenda .item:first-of-type{border-top:0}
+.agenda .n{font-family:var(--f-mono);font-size:22px;color:var(--a)}
+.agenda .t{font-size:27px;font-weight:600;line-height:1.2}
+.agenda .s{display:block;font-size:18px;font-weight:300;color:var(--muted);margin-top:2px}
+.ficha{display:flex;gap:0;margin-top:34px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;max-width:820px}
+.ficha div{flex:1;padding:14px 18px;border-left:1px solid var(--line)}
+.ficha div:first-child{border-left:0}
+.ficha dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ficha dd{margin:4px 0 0;font-size:20px;font-weight:400}
+
+/* concepto: los tamaños de texto se multiplican por --k, que el script baja si el contenido no cabe */
+.slide{--k:1}
+.titular{display:flex;align-items:flex-end;justify-content:space-between;gap:40px}
+.titular h1{font-size:calc(68px*var(--k));font-weight:700;line-height:1;margin:0;letter-spacing:-.015em}
+.titular .exp{font-size:calc(26px*var(--k));color:var(--muted);margin-top:10px}
+.titular .exp b{color:var(--ink)}
+.chips{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
+.chip{font-family:var(--f-mono);font-size:15px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.chip.tipo{background:var(--a-soft);color:var(--a);border-color:transparent;text-transform:uppercase;letter-spacing:.08em}
+.chip.origen{font-size:17px}
+
+.cuerpo{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:start}
+.cuerpo.solo{grid-template-columns:1fr}
+.col{display:flex;flex-direction:column;gap:16px}
+.defin{margin:0;font-size:calc(28px*var(--k));line-height:1.4;font-weight:300}
+.defin b{font-weight:500}
+.cita{margin:0;border-left:4px solid var(--a);padding:2px 0 2px 22px;font-size:calc(21px*var(--k));line-height:1.45;font-style:italic}
+.cita footer{font-style:normal;font-family:var(--f-mono);font-size:calc(14px*var(--k));color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+.piezas{display:grid;gap:8px}
+.pieza{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:calc(18.5px*var(--k));line-height:1.32}
+.pieza .k{font-family:var(--f-mono);font-size:1.25em;font-weight:500;color:var(--a);margin-right:8px}
+.pieza .h{font-weight:500}
+.pieza .x{display:block;color:var(--muted);margin-top:2px}
+
+.datos{display:grid;gap:12px;margin:0}
+.dato{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 16px;font-size:calc(18.5px*var(--k));line-height:1.42}
+.dato dt{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:6px}
+.dato dd{margin:0}
+.dato.no{border-top-color:var(--b)}
+.dato.no dt{color:var(--b)}
+
+.cupo{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;background:var(--a-soft);border-radius:12px;padding:14px 22px;font-size:calc(19.5px*var(--k));line-height:1.45}
+.cupo .et{font-family:var(--f-mono);font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--a);padding-top:5px;white-space:nowrap}
+
+/* diapositivas libres (diapositivas-cupo.html): diagramas SVG que heredan los tokens, paneles, tablas y código */
+.lienzo{flex:1;min-height:0;display:grid;gap:28px}
+.lienzo svg{width:100%;height:100%;display:block;overflow:visible}
+.dg text{font-family:var(--f-body);fill:var(--ink);font-size:19px;font-weight:400}
+.dg .tt{font-size:22px;font-weight:600}
+.dg .tg{font-size:30px;font-weight:700}
+.dg .tm{fill:var(--muted);font-size:15.5px;font-weight:300}
+.dg .tc{font-family:var(--f-mono);font-size:14px;fill:var(--muted)}
+.dg .tc.a{fill:var(--a)}
+.dg .tc.b{fill:var(--b)}
+.dg .caja{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.dg .acento{fill:var(--a-soft);stroke:var(--a);stroke-width:2}
+.dg .ext{fill:var(--sunk);stroke:var(--muted);stroke-width:1.3;stroke-dasharray:6 5}
+.dg .naranja{fill:var(--b-soft);stroke:var(--b);stroke-width:1.5}
+.dg .ok{fill:var(--ok-soft);stroke:var(--ok);stroke-width:2}
+.dg .linea{stroke:var(--muted);stroke-width:1.6;fill:none}
+.dg .flecha{stroke:var(--muted);stroke-width:1.8;fill:none}
+.dg .flecha.a{stroke:var(--a)}
+.dg .flecha.b{stroke:var(--b)}
+.dg .punta{fill:var(--muted)} .dg .punta.a{fill:var(--a)} .dg .punta.b{fill:var(--b)}
+.dg .barra-dato{fill:var(--a)}
+.dg .barra-dato:hover{opacity:.8}
+.dg .eje{stroke:var(--line);stroke-width:1.5}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:10px;font-size:calc(17px*var(--k));line-height:1.42}
+.panel h3,.lienzo h3{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.09em;text-transform:uppercase;color:var(--a);margin:0}
+.panel p{margin:0}
+.filas{display:flex;flex-direction:column}
+.fila{display:grid;grid-template-columns:var(--cols,1fr 2fr);gap:14px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.fila:first-child{border-top:0}
+.fila .m{color:var(--muted)}
+.fila>code{justify-self:start}
+.pasos{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.paso{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:calc(15px*var(--k));line-height:1.38}
+.paso .n{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.08em;text-transform:uppercase}
+.paso .h{font-size:calc(19px*var(--k));font-weight:600}
+.paso code{font-size:.78em}
+.reglas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.regla{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:calc(16.5px*var(--k));line-height:1.38;display:flex;flex-direction:column;gap:4px}
+.regla .h{font-weight:600;font-size:calc(19px*var(--k))}
+.regla .c{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.cod{background:#14202B;color:#E4EBF1;border-radius:12px;padding:18px 22px;font-family:var(--f-mono);font-size:calc(15px*var(--k));line-height:1.6;margin:0;white-space:pre}
+.cod .c{color:#7F8E9B}
+.cod .k{color:#7CC4DD}
+.metodo{font-family:var(--f-mono);font-size:13px;padding:2px 8px;border-radius:6px;background:var(--a-soft);color:var(--a)}
+.metodo.post{background:var(--b-soft);color:var(--b)}
+.metodo.del{background:var(--bad-soft);color:var(--bad)}
+
+/* presentaciones de clase (claseNN.py): separadores de parte, tablas, listas y tarjetas */
+.separador .cuerpo-sep{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:1240px}
+.separador .parte{font-family:var(--f-mono);font-size:22px;color:var(--a);letter-spacing:.1em;text-transform:uppercase}
+.separador h1{font-size:104px;line-height:1;font-weight:700;margin:0;letter-spacing:-.02em}
+.separador .lede{font-size:30px;line-height:1.45;color:var(--muted);margin:0;max-width:44ch}
+.separador .temas{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.separador .chip{font-size:17px;padding:8px 16px}
+.tabla{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;font-size:calc(17px*var(--k));line-height:1.4}
+.tabla th{font-family:var(--f-mono);font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:11px 16px;background:var(--sunk)}
+.tabla td{padding:calc(10px*var(--k)) 16px;border-top:1px solid var(--line);vertical-align:top}
+.tabla td:first-child{font-weight:500}
+.tabla .k{font-family:var(--f-mono);font-size:1.2em;color:var(--a)}
+.tabla .m{color:var(--muted)}
+.estado{font-family:var(--f-mono);font-size:calc(14px*var(--k));padding:3px 10px;border-radius:999px;white-space:nowrap;display:inline-block}
+.estado.si{background:var(--ok-soft);color:var(--ok)}
+.estado.no{background:var(--bad-soft);color:var(--bad)}
+.estado.pend{background:var(--warn-soft);color:var(--warn)}
+.lista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:calc(10px*var(--k))}
+.lista li{padding-left:30px;position:relative}
+.lista li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-family:var(--f-mono);font-weight:500}
+.lista.no li::before{content:"✕";color:var(--bad)}
+.lista.num{counter-reset:n}
+.lista.num li{padding-left:40px}
+.lista.num li::before{counter-increment:n;content:counter(n,decimal-leading-zero);color:var(--a)}
+.panel.suave{background:var(--a-soft);border-color:transparent}
+.panel.alerta{background:var(--b-soft);border-color:transparent}
+.panel.alerta h3{color:var(--b)}
+.panel .ticket{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.06em}
+.panel .cita{font-size:calc(19px*var(--k))}
+.panel .grande{font-size:calc(22px*var(--k));line-height:1.4}
+.tarjeta{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--a);border-radius:10px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:6px;font-size:calc(16px*var(--k));line-height:1.4}
+.tarjeta .h{font-size:calc(21px*var(--k));font-weight:600}
+.tarjeta .c{font-family:var(--f-mono);font-size:13px;color:var(--a);letter-spacing:.06em;text-transform:uppercase}
+.tarjeta .x{color:var(--muted)}
+.tarjeta.b{border-top-color:var(--b)} .tarjeta.b .c{color:var(--b)}
+.tarjeta.gris{border-top-color:var(--line)} .tarjeta.gris .c{color:var(--muted)}
+.flujo{display:flex;align-items:stretch;gap:0}
+.flujo .tarjeta{flex:1}
+.flujo .sig{display:flex;align-items:center;padding:0 10px;color:var(--a);font-family:var(--f-mono);font-size:24px}
+
+/* controles en pantalla */
+/* los controles aparecen al mover el mouse y se esconden solos, para no tapar la diapositiva */
+.ctrl{position:fixed;right:14px;bottom:12px;display:flex;gap:6px;opacity:0;transition:opacity .3s;z-index:5}
+.ctrl:hover,.ctrl:focus-within,body.mueve .ctrl{opacity:1}
+.ctrl button{font-family:var(--f-mono);font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
+.progreso{position:fixed;left:0;bottom:0;height:3px;background:var(--a);transition:width .25s;z-index:4}
+
+@media print{
+  @page{size:1600px 900px;margin:0}
+  body{overflow:visible;background:var(--bg)}
+  .deck{position:static}
+  .slide{position:relative;left:auto;top:auto;margin:0;transform:none;display:flex;box-shadow:none;break-after:page}
+  .ctrl,.progreso{display:none}
+}
+
+/* sesión 2: puntos de valoración en la comparativa de estilos */
+.pts{font-family:var(--f-mono);color:var(--a);letter-spacing:2px;white-space:nowrap;font-size:1.05em}
+.pts i{font-style:normal;color:var(--line)}
+.tabla-pts td{white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="deck" id="deck">
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Acuerdos de clase</span></header>
+<div class="titular">
+  <div><h1>Nuestro ritual de inicio</h1><div class="exp">Tres acuerdos que repetiremos <b>al comenzar cada sesión</b>, para que todo el grupo arranque al mismo tiempo y con la misma información.</div></div>
+  <div class="chips"><span class="chip tipo">Cada clase</span></div>
+</div>
+<div class="lienzo" style="grid-template-rows:1fr auto;gap:22px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">01 · Inicio puntual</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">7:10</span>
+      <span class="h" style="font-size:28px">Comenzamos a las 7:10 en punto</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Los primeros minutos son de tolerancia para que todos los compañeros lleguen; a las 7:10 damos inicio a la clase.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">02 · Repositorio y LMS</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">LMS</span>
+      <span class="h" style="font-size:28px">Revisión del repositorio y el LMS</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Revisamos juntos el repositorio del curso y el LMS: actividades, lecturas y entregas de la sesión, para que todos lleguen preparados.</span>
+    </div>
+    <div class="tarjeta" style="padding:26px 28px;gap:14px">
+      <span class="c">03 · Asistencia</span>
+      <span class="mono" style="font-size:88px;line-height:1;color:var(--a);font-weight:500">✓</span>
+      <span class="h" style="font-size:28px">Llamar lista</span>
+      <span class="x" style="font-size:20px;line-height:1.45">Cerramos el inicio llamando lista, conforme a las disposiciones de la administración académica.</span>
+    </div>
+  </div>
+  <div class="panel suave"><p class="grande">Un mismo inicio en cada sesión nos permite <b>aprovechar mejor el tiempo</b> y asegura que nadie se pierda lo importante.</p></div>
+</div>
+<footer class="pie"><span class="idea">Puntualidad, repositorio y LMS, asistencia: así empieza cada clase.</span><span class="num"><span class="sello">iSAQB · SEI</span>1 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Repaso</span></header>
+<div class="titular">
+  <div><h1>Dónde quedamos</h1><div class="exp">La Sesión 4 midió la deuda y pagó la que más debilitaba. Hoy pagamos <b>D5 y D6</b>: el reglamento repartido.</div></div>
+  <div class="chips"><span class="chip tipo">Sesión 4</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr) 1fr;gap:16px">
+    <div class="tarjeta"><span class="c">Deuda técnica</span><span class="h">Capital e interés</span><span>El cuadrante de Fowler: deliberada o inadvertida, prudente o no.</span></div>
+    <div class="tarjeta"><span class="c">Métricas</span><span class="h">Ca, Ce, I y ciclos</span><span class="x"><b>Ca</b> acoplamiento aferente · <b>Ce</b> acoplamiento eferente · <b>I</b> inestabilidad = Ce / (Ca + Ce)</span><span><code>pnpm metricas</code>: 0 ciclos entre archivos, <code>utils.ts</code> desapareció.</span></div>
+    <div class="tarjeta"><span class="c">Inventario</span><span class="h">14 deudas con dueño</span><span>Impacto contra esfuerzo; cada una con su sesión.</span></div>
+    <div class="panel"><h3>La evidencia</h3>
+      <div class="filas" style="--cols:1fr auto">
+        <div class="fila"><span>Pruebas</span><b class="mono">75 → 77</b></div>
+        <div class="fila"><span>Problemas</span><b class="mono">22 → 18</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel alerta">
+    <h3>Las deudas de hoy</h3>
+    <div class="filas" style="--cols:120px 1fr">
+      <div class="fila"><b class="mono">D5</b><span>«Inscritos ≤ cupo» se calcula en <b>inscripciones, oferta y reportes</b>, cada uno a su manera. Una inscripción es un objeto <code>any</code>: cualquiera le cambia los créditos.</span></div>
+      <div class="fila"><b class="mono">D6</b><span>La API dice <b>paralelos</b>; el código de la oferta dice <b>grupos</b>. Alguien traduce, y algún día se equivoca.</span></div>
+      <div class="fila"><b class="mono">extra</b><span>Las reglas lanzan <code>BadRequestException</code>: el reglamento <b>sabe de HTTP</b>.</span></div>
+    </div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Si el reglamento vive en todas partes, no vive en ninguna.</span><span class="num"><span class="sello">iSAQB · SEI</span>2 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Para empezar</span></header>
+<div class="titular">
+  <div><h1>En TokTik, «video» significa cuatro cosas distintas</h1><div class="exp">Y todas viven en <b>una sola clase <code>Video</code> de 40 campos</b> que nadie se atreve a tocar</div></div>
+  <div class="chips"><span class="chip tipo">Un experimento mental</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.2fr 1fr;gap:30px;align-items:start">
+  <table class="tabla"><thead><tr><th>equipo</th><th>para ellos, un «video» es…</th><th>lo que le importa</th></tr></thead><tbody>
+    <tr><td>Producto</td><td>Lo que el creador sube y la gente ve.</td><td>Título, duración, música.</td></tr>
+    <tr><td>Moderación</td><td>Contenido pendiente de revisar.</td><td>Denuncias, estado, revisor.</td></tr>
+    <tr><td>Recomendaciones</td><td>Una señal de interés.</td><td>Vistas, tiempo visto, likes.</td></tr>
+    <tr><td>Publicidad</td><td>Un espacio para un anuncio.</td><td>Audiencia, precio, campaña.</td></tr>
+  </tbody></table>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel alerta"><h3>Una clase para todos</h3><p class="grande">Moderación agrega un campo y <b>se rompe Publicidad</b>. Nadie sabe qué campos puede borrar. Cada reunión empieza aclarando qué quiso decir el otro.</p></div>
+    <div class="panel suave"><h3>En Cupo pasa lo mismo</h3><p class="grande">«Inscripción» para la Dirección son <b>materias y cupos</b>; para Tesorería es <b>un cobro</b>. Misma palabra, dos modelos.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Una palabra con varios significados necesita varios modelos, no un modelo enorme.</span><span class="num"><span class="sello">iSAQB · SEI</span>3 / 18</span></footer>
+</section>
+
+<section class="slide portada">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Unidad 2 · Decisiones, deuda y dominio</span></header>
+<div class="cuerpo">
+  <div>
+    <div class="ses">Arquitectura de Software · Sesión 05</div>
+    <h1>Diseño orientado al dominio</h1>
+    <p class="lede">La estructura del código debería parecerse a la del negocio. Si la Dirección dice «el paralelo no tiene cupo», el código debería tener un <code>Paralelo</code> que lo diga, y en un solo lugar.</p>
+    <dl class="ficha"><div><dt>Duración</dt><dd>3 horas</dd></div><div><dt>Caso de estudio</dt><dd>Cupo · NestJS</dd></div><div><dt>Lectura</dt><dd>Vernon · DDD Distilled</dd></div></dl>
+  </div>
+  <nav class="agenda"><h2>4 partes de la clase</h2><div class="item"><span class="n">01</span><span class="t">DDD estratégico<span class="s">Lenguaje ubicuo, contextos delimitados y su mapa</span></span></div><div class="item"><span class="n">02</span><span class="t">DDD táctico<span class="s">Entidad, agregado e invariante, lo justo</span></span></div><div class="item"><span class="n">03</span><span class="t">Un dominio puro<span class="s">Errores de dominio, sin HTTP en las reglas</span></span></div><div class="item"><span class="n">04</span><span class="t">Cupo con modelo de dominio<span class="s">Los 6 pasos, resultados y cierre</span></span></div></nav>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>4 / 18</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 01</div>
+  <h1>DDD estratégico</h1>
+  <p class="lede">Primero las palabras y las fronteras; las clases vienen después. Lo importante de hoy son las fronteras: en la Sesión 7 se convierten en módulos.</p>
+  <div class="temas"><span class="chip">Qué es DDD</span><span class="chip">Lenguaje ubicuo</span><span class="chip">Contexto delimitado</span><span class="chip">Mapa de contextos</span><span class="chip">Relaciones</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>5 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01 · DDD estratégico</span></header>
+<div class="titular">
+  <div><h1>DDD</h1><div class="exp"><b>Domain-Driven Design</b> · diseño orientado al dominio</div></div>
+  <div class="chips"><span class="chip tipo">Enfoque</span><span class="chip origen">Eric Evans · 2003</span></div>
+</div>
+<div class="cuerpo">
+  <p class="defin">Diseñar el software <b>alrededor del negocio</b>: hablar su idioma, separar las partes donde las palabras cambian de significado y poner las reglas importantes en objetos que las protejan.</p><div class="col"><div class="piezas" style="grid-template-columns:repeat(2,1fr)"><div class="pieza"><span class="k">E</span><span class="h">Estratégico</span><span class="x">Lenguaje ubicuo, contextos delimitados y cómo se relacionan. Decide las fronteras.</span></div><div class="pieza"><span class="k">T</span><span class="h">Táctico</span><span class="x">Entidades, objetos de valor, agregados, eventos. Da forma al interior de un contexto.</span></div></div></div>
+</div>
+<dl class="datos" style="grid-template-columns:repeat(4,1fr)"><div class="dato"><dt>Origen</dt><dd>Eric Evans publica <i>Domain-Driven Design</i> (2003), el «libro azul». Vaughn Vernon lo condensa en <i>DDD Distilled</i> (2016).</dd></div><div class="dato"><dt>Qué resuelve</dt><dd>Que el negocio y el código digan lo mismo. Que las reglas vivan <b>en un solo lugar</b> y no se traduzcan en cada conversación.</dd></div><div class="dato"><dt>Cuándo</dt><dd>Dominios con reglas ricas que cambian: reglamentos, seguros, logística, banca. Ahí el modelo es la ventaja.</dd></div><div class="dato no"><dt>Cuidado</dt><dd>En un CRUD simple es ceremonia. Y usar entidades y agregados <b>sin</b> lenguaje ni fronteras es copiar la forma sin el fondo.</dd></div></dl>
+<div class="cupo"><span class="et">En Cupo</span><span>El programa pide <b>DDD estratégico</b>: lenguaje y fronteras. Lo táctico lo usamos lo justo para que el reglamento tenga un lugar donde vivir.</span></div>
+<footer class="pie"><span class="idea">Estratégico primero: sin fronteras, lo táctico no tiene dónde apoyarse.</span><span class="num"><span class="sello">iSAQB · SEI</span>6 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01 · DDD estratégico</span></header>
+<div class="titular">
+  <div><h1>Lenguaje ubicuo</h1><div class="exp">Las mismas palabras en la boca del negocio <b>y en el código</b> · <code>docs/dominio/lenguaje-ubicuo.md</code></div></div>
+  <div class="chips"><span class="chip tipo">Estratégico</span></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:18px;align-content:start">
+  <table class="tabla"><thead><tr><th>término</th><th>qué significa</th><th>en el código</th><th>no confundir con</th></tr></thead><tbody>
+    <tr><td>Paralelo</td><td>Un grupo concreto de una materia, con docente, horario y cupo (<code>SIS-211-B</code>).</td><td><code>Paralelo</code></td><td class="m">Materia; «curso»</td></tr>
+    <tr><td>Grupo</td><td>La letra que distingue los paralelos (A, B). Un dato del paralelo, no otro concepto.</td><td><code>paralelo.grupo</code></td><td class="m">Paralelo</td></tr>
+    <tr><td>Cupo</td><td>Cuántos caben. <b>Nunca más inscritos que el cupo.</b></td><td><code>verificarQueHayCupo()</code></td><td class="m">Disponibles</td></tr>
+    <tr><td>Disponibles</td><td>Cupo menos inscritos, nunca menos de cero.</td><td><code>disponibles()</code></td><td class="m">Cupo</td></tr>
+    <tr><td>Inscripción de gestión</td><td>Las materias de un estudiante en una gestión. Un agregado.</td><td><code>InscripcionDeGestion</code></td><td class="m">El acto de inscribirse</td></tr>
+    <tr><td>Sigla</td><td>Código de una materia: <code>SIS-211</code>.</td><td><code>sigla</code></td><td class="m">La del legado: <code>SIS211</code></td></tr>
+  </tbody></table>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+    <div class="panel alerta"><h3>Lo que se corrige</h3><p>En la oferta, <code>grupos</code> pasa a ser <code>paralelos</code>. Si el código dice una cosa y la Dirección otra, <b>alguien traduce y se equivoca</b>.</p></div>
+    <div class="panel suave"><h3>El glosario es para personas</h3><p>Se lleva a la Dirección de Carrera y se pregunta si está bien. El lenguaje <b>se acuerda con el negocio</b>, no se inventa en el equipo.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Si una palabra no está en el glosario, no se inventa en el código.</span><span class="num"><span class="sello">iSAQB · SEI</span>7 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01 · DDD estratégico</span></header>
+<div class="titular">
+  <div><h1>Contexto delimitado</h1><div class="exp"><b>Bounded context</b> · una frontera donde cada palabra tiene un solo significado</div></div>
+  <div class="chips"><span class="chip tipo">Estratégico</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+    <blockquote class="cita" style="font-size:calc(24px*var(--k))">«Un contexto delimitado es una frontera semántica: dentro de ella, cada término del lenguaje ubicuo tiene un significado específico.»<footer>Vaughn Vernon · Domain-Driven Design Distilled, cap. 2 (traducción libre)</footer></blockquote>
+    <p class="defin">Cada contexto tiene <b>su propio modelo</b> y su propio lenguaje. No se busca un modelo único para toda la empresa: se busca que cada uno sea <b>coherente por dentro</b>.</p>
+  </div>
+  <table class="tabla"><thead><tr><th>la palabra</th><th>en Inscripción</th><th>en Pagos</th><th>en Historial académico</th></tr></thead><tbody>
+    <tr><td>Inscripción</td><td>Materias, paralelos, créditos y reglas del reglamento.</td><td>Un cobro: monto, arancel y estado del pago.</td><td>—</td></tr>
+    <tr><td>Materia</td><td>Sigla, créditos y prerrequisitos.</td><td>—</td><td>Una fila del kardex: nota y estado.</td></tr>
+    <tr><td>Estudiante</td><td>Quien se inscribe, con su kardex.</td><td>Quien paga, con su tipo de arancel.</td><td>Un registro del sistema legado.</td></tr>
+  </tbody></table>
+</div></div>
+<footer class="pie"><span class="idea">El mismo término puede significar cosas distintas a cada lado de una frontera.</span><span class="num"><span class="sello">iSAQB · SEI</span>8 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01 · DDD estratégico</span></header>
+<div class="titular">
+  <div><h1>El mapa de contextos de Cupo</h1><div class="exp">Siete contextos, dos sistemas ajenos, y <b>cómo se hablan</b> · <code>docs/dominio/mapa-de-contextos.md</code></div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.55fr 1fr;gap:26px;min-height:0">
+  <svg class="dg" viewBox="0 0 980 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa de contextos: Inscripción al centro como núcleo">
+    <defs><marker id="m5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta" d="M0,0 L10,5 L0,10 z"/></marker><marker id="m5b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="punta b" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <rect x="355" y="170" width="270" height="110" rx="14" class="acento"/><text x="490" y="214" text-anchor="middle" class="tt" style="font-size:26px">Inscripción</text><text x="490" y="244" text-anchor="middle" class="tc a">NÚCLEO · cupos y reglamento</text>
+    <rect x="20" y="40" width="210" height="70" rx="10" class="caja"/><text x="125" y="72" text-anchor="middle" class="tt" style="font-size:19px">Oferta académica</text><text x="125" y="96" text-anchor="middle" class="tc">soporte</text>
+    <rect x="20" y="190" width="210" height="70" rx="10" class="caja"/><text x="125" y="222" text-anchor="middle" class="tt" style="font-size:19px">Historial académico</text><text x="125" y="246" text-anchor="middle" class="tc">soporte</text>
+    <rect x="20" y="360" width="210" height="70" rx="10" class="ext"/><text x="125" y="392" text-anchor="middle" class="tt" style="font-size:19px">Sistema legado</text><text x="125" y="416" text-anchor="middle" class="tc">ajeno</text>
+    <rect x="385" y="20" width="210" height="70" rx="10" class="caja"/><text x="490" y="52" text-anchor="middle" class="tt" style="font-size:19px">Identidad</text><text x="490" y="76" text-anchor="middle" class="tc">genérico</text>
+    <rect x="750" y="40" width="210" height="70" rx="10" class="caja"/><text x="855" y="72" text-anchor="middle" class="tt" style="font-size:19px">Pagos</text><text x="855" y="96" text-anchor="middle" class="tc">genérico</text>
+    <rect x="750" y="190" width="210" height="70" rx="10" class="ext"/><text x="855" y="222" text-anchor="middle" class="tt" style="font-size:19px">Pasarela QR</text><text x="855" y="246" text-anchor="middle" class="tc">ajeno · banco</text>
+    <rect x="385" y="380" width="210" height="70" rx="10" class="caja"/><text x="490" y="412" text-anchor="middle" class="tt" style="font-size:19px">Notificaciones</text><text x="490" y="436" text-anchor="middle" class="tc">genérico</text>
+    <rect x="750" y="360" width="210" height="70" rx="10" class="caja"/><text x="855" y="392" text-anchor="middle" class="tt" style="font-size:19px">Reportes</text><text x="855" y="416" text-anchor="middle" class="tc">soporte</text>
+    <path d="M230,90 L347,180" class="flecha" marker-end="url(#m5a)"/><text x="296" y="166" text-anchor="end" class="tc">proveedor</text>
+    <path d="M230,225 L347,225" class="flecha" marker-end="url(#m5a)"/><text x="296" y="214" text-anchor="middle" class="tc">proveedor</text>
+    <path d="M125,360 L125,268" class="flecha b" marker-end="url(#m5b)"/><text x="135" y="320" class="tc b">conformista → ACL S7</text>
+    <path d="M490,90 L490,162" class="flecha" marker-end="url(#m5a)"/><text x="500" y="135" class="tc">kernel compartido</text>
+    <path d="M625,185 L742,95" class="flecha" marker-end="url(#m5a)"/><text x="690" y="160" class="tc">cliente</text>
+    <path d="M855,190 L855,118" class="flecha b" marker-end="url(#m5b)"/><text x="865" y="160" class="tc b">conformista</text>
+    <path d="M490,280 L490,372" class="flecha" marker-end="url(#m5a)" style="stroke-dasharray:6 5"/><text x="500" y="335" class="tc">publica · S8</text>
+    <path d="M625,265 L742,370" class="flecha" marker-end="url(#m5a)" style="stroke-dasharray:6 5"/><text x="705" y="300" class="tc">publica · S8</text>
+  </svg>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="panel"><h3>Tres tipos de contexto</h3><div class="filas" style="--cols:110px 1fr">
+      <div class="fila"><b>Núcleo</b><span>Lo que hace único a Cupo: Inscripción. Ahí va el mejor diseño.</span></div>
+      <div class="fila"><b>Soporte</b><span>Necesario y propio, pero no diferencia: Oferta, Historial, Reportes.</span></div>
+      <div class="fila"><b>Genérico</b><span>Lo tiene cualquier sistema; podría comprarse hecho: Pagos, Identidad, Notificaciones.</span></div></div></div>
+    <div class="panel alerta"><h3>Lo que el mapa deja ver</h3><p>El ciclo <code>inscripciones ⇄ oferta</code> (D4) es una <b>frontera mal trazada</b>, y hay <b>dos</b> clientes del legado. Se ordena en la Sesión 7.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El mapa muestra dónde invertir el mejor diseño y dónde comprar hecho.</span><span class="num"><span class="sello">iSAQB · SEI</span>9 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 01 · DDD estratégico</span></header>
+<div class="titular">
+  <div><h1>Cómo se relacionan los contextos</h1><div class="exp">Los patrones del mapa: <b>quién provee, quién consume y quién se adapta</b> al modelo de otro</div></div>
+</div>
+<div class="lienzo"><div style="display:flex;flex-direction:column;gap:18px;align-content:start">
+  <table class="tabla"><thead><tr><th>relación</th><th>qué significa</th><th>en Cupo</th></tr></thead><tbody>
+    <tr><td>Proveedor → cliente</td><td>Uno provee datos y el otro los consume; el cliente puede pedir cambios.</td><td>Oferta provee los paralelos; Inscripción decide los cupos.</td></tr>
+    <tr><td>Conformista</td><td>Se acepta el modelo del otro tal cual, sin traducir.</td><td>Hoy con el legado: <code>SIS111</code>, <code>APROB</code>, <code>CONV</code> se filtran por todo el sistema.</td></tr>
+    <tr><td>Capa anticorrupción (ACL)</td><td>Una capa traduce el modelo ajeno al propio, en un solo lugar.</td><td>Lo que reemplaza al conformista con el legado en la <b>Sesión 7</b>.</td></tr>
+    <tr><td>Kernel compartido</td><td>Dos contextos comparten una pequeña parte del modelo.</td><td>La sesión del usuario, entre Identidad e Inscripción.</td></tr>
+    <tr><td>Publicar eventos</td><td>Un contexto avisa lo que pasó; otros reaccionan sin acoplarse.</td><td><code>InscripcionConfirmada</code> en la <b>Sesión 8</b>.</td></tr>
+  </tbody></table>
+  <div class="cupo"><span class="et">Por qué importa</span><span>Ser conformista no es un error: es una decisión con costo. Con el legado lo fuimos sin darnos cuenta, y por eso Diego no puede inscribirse a SIS-112. <b>El mapa lo hace visible</b>.</span></div>
+</div></div>
+<footer class="pie"><span class="idea">Cada relación entre contextos es una decisión sobre quién se adapta a quién.</span><span class="num"><span class="sello">iSAQB · SEI</span>10 / 18</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 02</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 02</div>
+  <h1>DDD táctico</h1>
+  <p class="lede">Lo justo para que el reglamento tenga un lugar donde vivir: una entidad que protege el cupo y un agregado que protege la inscripción.</p>
+  <div class="temas"><span class="chip">Entidad</span><span class="chip">Invariante</span><span class="chip">Agregado</span><span class="chip">Errores de dominio</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>11 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 02 · DDD táctico</span></header>
+<div class="titular">
+  <div><h1>Entidad e invariante</h1><div class="exp"><code>Paralelo</code>: el <b>único</b> que conoce la regla del cupo</div></div>
+  <div class="chips"><span class="chip tipo">Táctico</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1.15fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="tarjeta"><span class="c">Entidad</span><span class="h">Identidad que dura en el tiempo</span><span>Dos paralelos con el mismo cupo y horario siguen siendo distintos: los distingue su id, <code>SIS-211-B</code>.</span></div>
+    <div class="tarjeta"><span class="c">Invariante</span><span class="h">Una regla que siempre se cumple</span><span>«Nunca más inscritos que el cupo». Si vive en un objeto, <b>no se puede saltar</b>.</span></div>
+    <div class="panel alerta"><h3>Antes</h3><p>La regla se calculaba en <b>3 archivos</b>: inscripciones, oferta y reportes, cada uno a su manera.</p></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span class="estado si" style="align-self:flex-start">src/inscripciones/dominio/paralelo.ts</span>
+<pre class="cod"><span class="c">// El ÚNICO lugar que conoce la regla</span>
+<span class="c">// "nunca más inscritos que el cupo".</span>
+<span class="k">export class</span> Paralelo {
+  disponibles(inscritos: <span class="k">number</span>) {
+    <span class="k">return</span> Math.max(<span class="k">this</span>.cupo - inscritos, 0);
+  }
+  verificarQueHayCupo(inscritos: <span class="k">number</span>) {
+    <span class="k">if</span> (inscritos &gt;= <span class="k">this</span>.cupo)
+      <span class="k">throw new</span> ReglaIncumplida(
+        <span class="k">`Ya no hay cupo en ${this.id}`</span>, <span class="k">'conflicto'</span>);
+  }
+  ocupacion(inscritos: <span class="k">number</span>) { <span class="c">/* … */</span> }
+}</pre>
+    <div class="panel suave"><p>La oferta, los reportes y las inscripciones <b>le preguntan al paralelo</b>. <code>Math.max</code>: «disponibles» nunca es negativo, como dice el glosario.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Una regla dentro de un objeto no se puede olvidar ni copiar mal.</span><span class="num"><span class="sello">iSAQB · SEI</span>12 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 02 · DDD táctico</span></header>
+<div class="titular">
+  <div><h1>Agregado</h1><div class="exp"><code>InscripcionDeGestion</code>: se cambia como una unidad, <b>solo a través de su raíz</b></div></div>
+  <div class="chips"><span class="chip tipo">Táctico</span></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <p class="defin" style="font-size:calc(24px*var(--k))">Un <b>agregado</b> es un grupo de objetos que se cambia como una unidad. La <b>raíz</b> es la única puerta de entrada y protege todas sus reglas.</p>
+    <div class="panel"><h3>Lo que protege, en orden</h3><ul class="lista num"><li>Materia repetida.</li><li>Máximo de créditos.</li><li>Cupo del paralelo.</li><li>Choque de horario.</li><li>Prerrequisitos.</li></ul></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="flujo">
+      <div class="tarjeta"><span class="c">crear()</span><span>Valida todo y nace en <code>PENDIENTE_PAGO</code>.</span></div>
+      <span class="sig">→</span>
+      <div class="tarjeta"><span class="c">registrarPago()</span><span>Pasa a pagada.</span></div>
+      <span class="sig">→</span>
+      <div class="tarjeta"><span class="c">retirar()</span><span>Nunca la última materia.</span></div>
+    </div>
+    <div class="panel"><h3>Lo que queda en el servicio</h3><p>El periodo, «ya está inscrito» y «el paralelo existe» necesitan datos (archivos, reloj): son de la <b>aplicación</b>. El dueño de la inscripción (403) es <b>autorización</b>. El servicio orquesta: busca, llama al agregado, cobra y guarda.</p></div>
+    <div class="panel suave"><h3>Por qué <code>desde()</code> copia los datos</h3><p>Si guardara la misma lista que le pasan, alguien podría cambiarla desde afuera sin pasar por <code>retirar()</code>. Una prueba lo verifica.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">Si hay que cambiarlo, se pasa por la raíz; si no, la regla no existe.</span><span class="num"><span class="sello">iSAQB · SEI</span>13 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 02 · DDD táctico</span></header>
+<div class="titular">
+  <div><h1>El dominio no sabe de HTTP</h1><div class="exp">El dominio dice «esta regla no se cumple»; <b>un filtro lo traduce</b> a la respuesta</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1fr 1fr;gap:26px;align-content:start">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span class="estado no" style="align-self:flex-start">antes · el reglamento sabe de Nest</span>
+<pre class="cod"><span class="k">if</span> (creditos &gt; MAX_CREDITOS) {
+  <span class="k">throw new</span> BadRequestException(
+    <span class="k">'Supera el máximo de créditos'</span>);
+}</pre>
+    <span class="estado si" style="align-self:flex-start;margin-top:8px">después · el dominio lanza su propio error</span>
+<pre class="cod"><span class="k">if</span> (creditos &gt; MAX_CREDITOS) {
+  <span class="k">throw new</span> ReglaIncumplida(
+    <span class="k">'Supera el máximo de créditos'</span>, <span class="k">'invalida'</span>);
+}</pre>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <table class="tabla"><thead><tr><th>tipo de regla</th><th>HTTP</th></tr></thead><tbody>
+      <tr><td><code>invalida</code> · la petición no cumple el reglamento</td><td class="mono">400</td></tr>
+      <tr><td><code>conflicto</code> · el estado no lo permite (sin cupo)</td><td class="mono">409</td></tr>
+    </tbody></table>
+    <div class="panel"><h3>Un filtro de excepciones, en un solo lugar</h3><p>Registrado con <code>APP_FILTER</code>, se aplica a toda la app. Responde con la misma forma que usa Nest: <b>el contrato no cambia</b>.</p></div>
+    <div class="panel suave"><h3>La ganancia</h3><p class="grande"><code>src/inscripciones/dominio/</code> no importa Nest ni Node: <b>se prueba en milisegundos</b>, y una regla vigila que siga así.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El reglamento no debería cambiar si mañana Cupo deja de ser una API HTTP.</span><span class="num"><span class="sello">iSAQB · SEI</span>14 / 18</span></footer>
+</section>
+
+<section class="slide separador">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 03</span></header>
+<div class="cuerpo-sep">
+  <div class="parte">Parte 03</div>
+  <h1>Cupo con modelo de dominio</h1>
+  <p class="lede">Del glosario al agregado en 6 pasos, con el contrato pasando en cada uno.</p>
+  <div class="temas"><span class="chip">Los 6 pasos</span><span class="chip">Resultados</span><span class="chip">Lo que sigue</span><span class="chip">Próxima sesión</span></div>
+</div>
+<footer class="pie"><span>Especialidad Full Stack · UCB</span><span class="num"><span class="sello">iSAQB · SEI</span>15 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 03 · Cupo con modelo de dominio</span></header>
+<div class="titular">
+  <div><h1>Los 6 pasos</h1><div class="exp">Primero las <b>palabras</b> y las <b>fronteras</b>; después las clases</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-rows:auto auto;gap:22px;align-content:start">
+  <div class="pasos">
+    <div class="paso"><span class="n">Paso 1</span><span class="h">Lenguaje</span><span>El glosario; en la oferta, <code>grupos</code> pasa a <code>paralelos</code>.</span></div>
+    <div class="paso"><span class="n">Paso 2</span><span class="h">Contextos</span><span>El mapa: siete contextos y cómo se hablan.</span></div>
+    <div class="paso"><span class="n">Paso 3</span><span class="h">Errores</span><span><code>ReglaIncumplida</code> y un filtro que la traduce a HTTP.</span></div>
+    <div class="paso"><span class="n">Paso 4</span><span class="h">Paralelo</span><span>La entidad que conoce el cupo; el conteo va al repositorio.</span></div>
+    <div class="paso"><span class="n">Paso 5</span><span class="h">Agregado</span><span><code>InscripcionDeGestion</code> valida al crearse y al retirar.</span></div>
+    <div class="paso"><span class="n">Paso 6</span><span class="h">Cierre</span><span>Las primeras pruebas unitarias de dominio, y que siga puro.</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div class="panel alerta"><h3>El sobrecupo sigue, a propósito</h3><p>El paralelo verifica con el conteo que se leyó <b>antes</b> de esperar al banco. La regla está en el lugar correcto; la concurrencia es de la Sesión 9 (ADR-0003).</p></div>
+    <div class="panel suave"><h3>Las primeras pruebas de dominio</h3><p>No levantan Nest, ni archivos, ni red. Y una regla vigila que nada en <code>dominio/</code> importe algo de fuera.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El contrato pasa 30 de 30 en cada uno de los 6 pasos.</span><span class="num"><span class="sello">iSAQB · SEI</span>16 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 03 · Resultados</span></header>
+<div class="titular">
+  <div><h1>Antes y después</h1><div class="exp">El reglamento vive <b>en un solo lugar</b>, y habla como la Dirección</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-content:start">
+  <table class="tabla"><thead><tr><th>medida</th><th>inicio</th><th>al terminar</th></tr></thead><tbody>
+    <tr><td>Archivos que calculan «inscritos ≤ cupo»</td><td class="mono" style="color:var(--bad)">3</td><td class="mono" style="color:var(--ok);font-weight:500">1 · Paralelo</td></tr>
+    <tr><td>Qué es una inscripción</td><td class="mono" style="color:var(--bad)">un any</td><td class="mono" style="color:var(--ok);font-weight:500">un agregado</td></tr>
+    <tr><td>Nombres para «paralelo»</td><td class="mono" style="color:var(--bad)">2</td><td class="mono" style="color:var(--ok);font-weight:500">1</td></tr>
+    <tr><td>Reglas que lanzan errores HTTP</td><td class="mono" style="color:var(--bad)">sí</td><td class="mono" style="color:var(--ok);font-weight:500">no</td></tr>
+    <tr><td>Imports de Nest o Node en <code>dominio/</code></td><td class="mono" style="color:var(--bad)">—</td><td class="mono" style="color:var(--ok);font-weight:500">0</td></tr>
+    <tr><td>Contextos dibujados</td><td class="mono" style="color:var(--bad)">0</td><td class="mono" style="color:var(--ok);font-weight:500">7</td></tr>
+  </tbody></table>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel"><h3>La evidencia</h3>
+      <div class="filas" style="--cols:1fr auto">
+        <div class="fila"><span>Pruebas en total</span><b class="mono">77 → 79</b></div>
+        <div class="fila"><span>Pruebas de soluciones</span><b class="mono">29 → 34</b></div>
+        <div class="fila"><span>Problemas pendientes</span><b class="mono">18 → 15</b></div>
+      </div>
+    </div>
+    <div class="panel alerta"><h3>Lo que sigue pendiente</h3><p>El servicio todavía depende de <b>clases concretas</b> de datos y del reloj real (D7, Sesión 6). Los dos clientes del legado y el ciclo con la oferta (D4, D8): Sesión 7.</p></div>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El código empieza a parecerse al negocio que modela.</span><span class="num"><span class="sello">iSAQB · SEI</span>17 / 18</span></footer>
+</section>
+
+<section class="slide">
+<header class="barra"><span class="marca"><span class="punto"></span>Sesión 5 · Dominio</span><span>Parte 03 · Cierre</span></header>
+<div class="titular">
+  <div><h1>Cierre</h1><div class="exp">Lo que nos llevamos y lo que viene</div></div>
+</div>
+<div class="lienzo"><div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-content:start">
+  <div class="panel">
+    <h3>Ideas clave</h3>
+    <ul class="lista num">
+      <li>El <b>lenguaje ubicuo</b> se acuerda con el negocio y se usa en el código.</li>
+      <li>Un <b>contexto delimitado</b> es una frontera de significado.</li>
+      <li>El <b>mapa de contextos</b> dice quién se adapta a quién.</li>
+      <li>Una <b>invariante</b> vive en un objeto que la protege.</li>
+      <li>Un <b>agregado</b> se cambia solo a través de su raíz.</li>
+      <li>El dominio <b>no sabe de HTTP</b>: se prueba sin levantar nada.</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3>Próxima sesión</h3>
+    <p class="grande"><b>El núcleo de Cupo deja de saber dónde se guardan los datos</b></p>
+    <p>Arquitectura hexagonal: puertos y adaptadores. El negocio define lo que necesita y se cambia de archivos JSON a SQLite <b>sin tocar el núcleo</b>.</p>
+    <p style="color:var(--muted)">Lectura: Martin · <i>Clean Architecture</i>, partes IV y V.</p>
+  </div>
+</div></div>
+<footer class="pie"><span class="idea">El reglamento tiene que vivir en un solo lugar del código.</span><span class="num"><span class="sello">iSAQB · SEI</span>18 / 18</span></footer>
+</section>
+</main>
+<script>
+[].forEach.call(document.querySelectorAll('.pts'),function(e){var n=+e.getAttribute('data-n');e.innerHTML='●'.repeat(n)+'<i>'+'○'.repeat(5-n)+'</i>'});
+</script>
+<div class="progreso" id="progreso"></div>
+<nav class="ctrl" aria-label="Controles">
+  <button type="button" data-ir="-1" title="Anterior (←)">←</button>
+  <button type="button" data-ir="1" title="Siguiente (→)">→</button>
+  <button type="button" id="tema" title="Tema claro u oscuro (T)">tema</button>
+  <button type="button" id="pantalla" title="Pantalla completa (F)">⛶</button>
+</nav>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var i=0, raiz=document.documentElement;
+  function guardar(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function leer(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  var t=leer('diapositivas-tema'); if(t) raiz.setAttribute('data-theme',t);
+  function escalar(){
+    var s=Math.min(innerWidth/1600, innerHeight/900);
+    raiz.style.setProperty('--s', s);
+  }
+  function mostrar(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.classList.toggle('activa',k===i)});
+    document.getElementById('progreso').style.width=((i+1)/slides.length*100)+'%';
+    if(location.hash!=='#'+(i+1)) history.replaceState(null,'','#'+(i+1));
+  }
+  function tema(){
+    var oscuro=raiz.getAttribute('data-theme')==='dark' ||
+      (!raiz.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var nuevo=oscuro?'light':'dark'; raiz.setAttribute('data-theme',nuevo); guardar('diapositivas-tema',nuevo);
+  }
+  function pantalla(){
+    if(document.fullscreenElement) document.exitFullscreen(); else if(raiz.requestFullscreen) raiz.requestFullscreen();
+  }
+  addEventListener('resize',escalar);
+  addEventListener('keydown',function(e){
+    if(e.metaKey||e.ctrlKey||e.altKey) return;
+    var k=e.key;
+    if(k==='ArrowRight'||k==='ArrowDown'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();mostrar(i+1)}
+    else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'||k==='Backspace'){e.preventDefault();mostrar(i-1)}
+    else if(k==='Home') mostrar(0);
+    else if(k==='End') mostrar(slides.length-1);
+    else if(k==='t'||k==='T') tema();
+    else if(k==='f'||k==='F') pantalla();
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){
+    if(x0===null) return; var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>40) mostrar(dx<0?i+1:i-1);
+  });
+  [].forEach.call(document.querySelectorAll('[data-ir]'),function(b){
+    b.addEventListener('click',function(){mostrar(i+Number(b.getAttribute('data-ir')))});
+  });
+  document.getElementById('tema').addEventListener('click',tema);
+  document.getElementById('pantalla').addEventListener('click',pantalla);
+  // Cada diapositiva empieza con el texto al 122 % y lo achica de a poco hasta que cabe en 900 px (mínimo 80 %).
+  // En las diapositivas libres también tiene que caber el lienzo, para no montarse sobre el pie.
+  function ajustar(){
+    slides.forEach(function(s){
+      s.style.display="flex"; var k=1.22;
+      s.style.setProperty('--k',k);
+      var l=s.querySelector('.lienzo');
+      while((s.scrollHeight>s.clientHeight+1 || (l && l.scrollHeight>l.clientHeight+1)) && k>0.8){k=Math.round((k-0.02)*100)/100; s.style.setProperty('--k',k)}
+      s.setAttribute('data-k',k); s.style.display='';
+    });
+  }
+  var oculto=null;
+  addEventListener('mousemove',function(){
+    document.body.classList.add('mueve'); clearTimeout(oculto);
+    oculto=setTimeout(function(){document.body.classList.remove('mueve')},1800);
+  });
+  escalar();
+  ajustar();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(ajustar);
+  mostrar((parseInt(location.hash.slice(1),10)||1)-1);
+})();
+</script>
+</body>
+</html>
